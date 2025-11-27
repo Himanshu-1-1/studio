@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { Button } from "@/components/ui/button";
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Button } from '@/components/ui/button';
 import {
   Form,
   FormControl,
@@ -11,36 +11,104 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import Link from "next/link";
-import { useRouter } from 'next/navigation'
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useAuth, useFirestore } from '@/firebase';
+import { useToast } from '@/hooks/use-toast';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
 
 const formSchema = z.object({
-  email: z.string().email({ message: "Invalid email address." }),
-  password: z.string().min(1, { message: "Password is required." }),
+  email: z.string().email({ message: 'Invalid email address.' }),
+  password: z.string().min(1, { message: 'Password is required.' }),
 });
 
 export function LoginForm() {
   const router = useRouter();
+  const auth = useAuth();
+  const firestore = useFirestore();
+  const { toast } = useToast();
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      email: "",
-      password: "",
+      email: '',
+      password: '',
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(values);
-    // TODO: Implement Firebase login logic
-    // On success, redirect to dashboard
-    router.push('/dashboard');
-  }
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    try {
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        values.email,
+        values.password
+      );
+      const user = userCredential.user;
+
+      if (!user) {
+        throw new Error('Login failed, user not found.');
+      }
+
+      const userDocRef = doc(firestore, 'users', user.uid);
+      const userDocSnap = await getDoc(userDocRef);
+
+      if (!userDocSnap.exists()) {
+        toast({
+          variant: 'destructive',
+          title: 'Profile not found',
+          description: "We couldn't find a user profile. Please sign up.",
+        });
+        // Optional: sign out the user if their profile is missing
+        await auth.signOut();
+        router.push('/signup');
+        return;
+      }
+
+      const userData = userDocSnap.data();
+      const role = userData.role;
+
+      // Role-based redirection
+      if (
+        role === 'student' ||
+        role === 'graduate' ||
+        role === 'experienced'
+      ) {
+        router.push('/dashboard/find-jobs');
+      } else if (role === 'recruiter') {
+        router.push('/dashboard/recruiter');
+      } else if (role === 'admin') {
+        // For now, admins can go to the seeker dashboard
+        router.push('/dashboard/find-jobs');
+      } else {
+        // Fallback for unknown roles
+        toast({
+          title: 'Welcome!',
+          description: 'Redirecting to your dashboard...',
+        });
+        router.push('/dashboard');
+      }
+    } catch (error: any) {
+      console.error('Login Error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Login Failed',
+        description:
+          error.code === 'auth/invalid-credential'
+            ? 'Invalid email or password.'
+            : 'An unexpected error occurred. Please try again.',
+      });
+    }
+  };
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        className="space-y-6"
+      >
         <FormField
           control={form.control}
           name="email"
@@ -59,12 +127,15 @@ export function LoginForm() {
           name="password"
           render={({ field }) => (
             <FormItem>
-                <div className="flex items-center">
-                    <FormLabel>Password</FormLabel>
-                    <Link href="#" className="ml-auto inline-block text-sm underline text-muted-foreground">
-                        Forgot your password?
-                    </Link>
-                </div>
+              <div className="flex items-center">
+                <FormLabel>Password</FormLabel>
+                <Link
+                  href="#"
+                  className="ml-auto inline-block text-sm underline text-muted-foreground"
+                >
+                  Forgot your password?
+                </Link>
+              </div>
               <FormControl>
                 <Input type="password" placeholder="********" {...field} />
               </FormControl>
@@ -72,8 +143,8 @@ export function LoginForm() {
             </FormItem>
           )}
         />
-        <Button type="submit" className="w-full">
-          Login
+        <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+          {form.formState.isSubmitting ? 'Logging in...' : 'Login'}
         </Button>
       </form>
     </Form>

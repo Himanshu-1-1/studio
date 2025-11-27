@@ -4,10 +4,13 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
+import { doc, getDoc } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
 
 export default function Dashboard() {
   const router = useRouter();
   const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
 
   useEffect(() => {
     if (isUserLoading) return; // Wait until user object is resolved
@@ -17,26 +20,36 @@ export default function Dashboard() {
         return;
     }
 
-    // In a real app, you would get user role from context/session/firestore
-    const userRole = user?.role || 'student'; // Mock role, replace with dynamic role from user object later
+    const fetchRoleAndRedirect = async () => {
+      const userDocRef = doc(firestore, 'users', user.uid);
+      const userDocSnap = await getDoc(userDocRef);
 
-    if (userRole === 'student' || userRole === 'graduate' || userRole === 'experienced') {
-      router.replace('/dashboard/find-jobs');
-    } else if (userRole === 'recruiter') {
-      router.replace('/dashboard/recruiter');
-    } else if (userRole === 'admin') {
-      // router.replace('/dashboard/admin');
-      // For now, redirect admin to find-jobs as admin dashboard is not built
-       router.replace('/dashboard/find-jobs');
-    } else {
-        // Handle unknown role or redirect to login if not authenticated
+      if (userDocSnap.exists()) {
+        const role = userDocSnap.data()?.role;
+        if (role === 'student' || role === 'graduate' || role === 'experienced') {
+          router.replace('/dashboard/find-jobs');
+        } else if (role === 'recruiter') {
+          router.replace('/dashboard/recruiter');
+        } else if (role === 'admin') {
+          // For now, redirect admin to find-jobs as admin dashboard is not built
+           router.replace('/dashboard/find-jobs');
+        } else {
+            // Handle unknown role or redirect to login if not authenticated
+            router.replace('/login');
+        }
+      } else {
+        // User doc doesn't exist, something is wrong
         router.replace('/login');
-    }
-  }, [router, user, isUserLoading]);
+      }
+    };
+
+    fetchRoleAndRedirect();
+
+  }, [router, user, isUserLoading, firestore]);
 
   // Display a loading skeleton while redirecting
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 p-8">
       <Skeleton className="h-12 w-1/4" />
       <div className="flex justify-center items-center h-96">
         <p className="text-muted-foreground">Loading your dashboard...</p>
