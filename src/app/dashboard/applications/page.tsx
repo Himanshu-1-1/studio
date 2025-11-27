@@ -6,13 +6,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { FileSearch } from "lucide-react";
-
-// Mock data - replace with Firestore data later
-const mockApplications = [
-    { id: 'app1', jobTitle: 'Frontend Developer', companyName: 'Innovate Inc.', status: 'pending', appliedOn: '2023-10-26' },
-    { id: 'app2', jobTitle: 'UX/UI Designer Intern', companyName: 'Creative Solutions', status: 'accepted', appliedOn: '2023-10-24' },
-    { id: 'app3', jobTitle: 'Data Scientist', companyName: 'DataDriven Co.', status: 'rejected', appliedOn: '2023-10-22' },
-];
+import { useAuth, useCollection, useDoc, useFirestore, useMemoFirebase } from "@/firebase";
+import type { Application, Job, Company } from "@/lib/types";
+import { collection, query, where, doc } from "firebase/firestore";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const statusVariant = {
     pending: 'secondary',
@@ -20,9 +17,59 @@ const statusVariant = {
     rejected: 'destructive',
 } as const;
 
+const ApplicationRow = ({ application }: { application: Application }) => {
+    const firestore = useFirestore();
+
+    const jobRef = useMemoFirebase(() => 
+        application.jobId ? doc(firestore, 'jobs', application.jobId) : null
+    , [firestore, application.jobId]);
+    const { data: job, isLoading: isJobLoading } = useDoc<Job>(jobRef);
+
+    const companyRef = useMemoFirebase(() =>
+        application.companyId ? doc(firestore, 'companies', application.companyId) : null
+    , [firestore, application.companyId]);
+    const { data: company, isLoading: isCompanyLoading } = useDoc<Company>(companyRef);
+
+    if (isJobLoading || isCompanyLoading) {
+        return (
+            <TableRow>
+                <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                <TableCell className="text-right"><Skeleton className="h-6 w-16 ml-auto" /></TableCell>
+            </TableRow>
+        );
+    }
+
+    if (!job || !company) {
+        // This can happen if a related job or company is deleted.
+        return null;
+    }
+
+    return (
+        <TableRow>
+            <TableCell className="font-medium">{job.title}</TableCell>
+            <TableCell>{company.name}</TableCell>
+            <TableCell>{application.createdAt.toDate().toLocaleDateString()}</TableCell>
+            <TableCell className="text-right">
+                <Badge variant={statusVariant[application.status as keyof typeof statusVariant]} className="capitalize">
+                    {application.status}
+                </Badge>
+            </TableCell>
+        </TableRow>
+    );
+};
 
 export default function ApplicationsPage() {
-    const applications = mockApplications; // Use mock data for now
+    const { user } = useAuth();
+    const firestore = useFirestore();
+
+    const applicationsQuery = useMemoFirebase(() => {
+        if (!user) return null;
+        return query(collection(firestore, 'applications'), where('candidateId', '==', user.uid));
+    }, [firestore, user]);
+
+    const { data: applications, isLoading } = useCollection<Application>(applicationsQuery);
 
     return (
         <div className="space-y-6">
@@ -37,7 +84,23 @@ export default function ApplicationsPage() {
                     <CardDescription>A list of all your submitted applications.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    {applications.length > 0 ? (
+                    {isLoading ? (
+                         <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Job Title</TableHead>
+                                    <TableHead>Company</TableHead>
+                                    <TableHead>Date Applied</TableHead>
+                                    <TableHead className="text-right">Status</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                <ApplicationRow application={{} as Application} />
+                                <ApplicationRow application={{} as Application} />
+                                <ApplicationRow application={{} as Application} />
+                            </TableBody>
+                        </Table>
+                    ) : applications && applications.length > 0 ? (
                         <Table>
                             <TableHeader>
                                 <TableRow>
@@ -49,16 +112,7 @@ export default function ApplicationsPage() {
                             </TableHeader>
                             <TableBody>
                                 {applications.map((app) => (
-                                    <TableRow key={app.id}>
-                                        <TableCell className="font-medium">{app.jobTitle}</TableCell>
-                                        <TableCell>{app.companyName}</TableCell>
-                                        <TableCell>{new Date(app.appliedOn).toLocaleDateString()}</TableCell>
-                                        <TableCell className="text-right">
-                                            <Badge variant={statusVariant[app.status as keyof typeof statusVariant]} className="capitalize">
-                                                {app.status}
-                                            </Badge>
-                                        </TableCell>
-                                    </TableRow>
+                                    <ApplicationRow key={app.id} application={app} />
                                 ))}
                             </TableBody>
                         </Table>
