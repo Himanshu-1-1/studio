@@ -13,16 +13,13 @@ interface TinderStyleJobCardProps {
   animationControls: AnimationControls;
 }
 
-const SWIPE_DISTANCE_THRESHOLD = 80; // Smaller distance for mobile
-const SWIPE_VELOCITY_THRESHOLD = 0.4; // Moderate flick speed
+const SWIPE_DISTANCE_THRESHOLD = 80;
+const SWIPE_VELOCITY_THRESHOLD = 0.4;
 
 export function TinderStyleJobCard({ job, isTop, onSwipe, animationControls }: TinderStyleJobCardProps) {
   const x = useMotionValue(0);
 
-  // Card rotation based on drag position
   const rotate = useTransform(x, [-200, 200], [-15, 15]);
-
-  // Card opacity and glow effects for visual feedback
   const greenGlow = useTransform(x, [0, 150], [0, 1]);
   const redGlow = useTransform(x, [-150, 0], [1, 0]);
 
@@ -51,14 +48,18 @@ export function TinderStyleJobCard({ job, isTop, onSwipe, animationControls }: T
         zIndex: isTop ? 10 : 1,
         x: isTop ? x : 0,
         rotate: isTop ? rotate : 0,
-        // Prevents vertical scroll while swiping horizontally on touch devices
         touchAction: 'pan-y',
       }}
       drag={isTop ? 'x' : false}
       dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
       dragElastic={0.5}
       onDragEnd={handleDragEnd}
+      // This initial animation makes the next card scale up smoothly.
       initial={isTop ? { scale: 1, y: 0 } : { scale: 0.96, y: 10 }}
+      // Animate the next card into place when the top one is removed
+      animate={isTop ? animationControls : { scale: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 25 } }}
+      // Use exit animation for the card that is being swiped away
+      exit={{ opacity: 0, transition: { duration: 0.2 } }}
       whileDrag={isTop ? { scale: 1.02, cursor: 'grabbing' } : {}}
     >
       {/* Visual Feedback Overlays */}

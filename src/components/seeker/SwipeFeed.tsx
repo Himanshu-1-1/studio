@@ -29,6 +29,7 @@ export function SwipeFeed() {
 
   const jobsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
+    // For now, let's fetch all active jobs. Filtering will happen client-side.
     return query(collection(firestore, 'jobs'), where('isActive', '==', true));
   }, [firestore, user]);
 
@@ -42,28 +43,33 @@ export function SwipeFeed() {
   const { data: appliedApplications, isLoading: isLoadingApplied } = useCollection<Application>(appliedJobsQuery);
   
   useEffect(() => {
-    if (isLoadingJobs || isLoadingApplied || !user) {
-      // Still waiting for data to load
-      return;
+    if (isLoadingJobs || isLoadingApplied) {
+      return; // Wait until all data is loaded
     }
 
     const appliedJobIds = new Set(appliedApplications?.map(app => app.jobId) || []);
-    let availableJobs = fetchedJobs?.filter(job => !appliedJobIds.has(job.id)) || [];
     
-    // If no jobs are fetched from Firestore, fall back to mock jobs
+    let availableJobs: Job[] = [];
+
+    if(fetchedJobs && fetchedJobs.length > 0){
+        availableJobs = fetchedJobs.filter(job => !appliedJobIds.has(job.id));
+    }
+    
+    // If no jobs are fetched from Firestore OR if all fetched jobs have been applied to
     if (availableJobs.length === 0) {
+        // Fallback to mock jobs, also filtering out any applied ones if their IDs match
         availableJobs = mockJobs.filter(job => !appliedJobIds.has(job.id));
     }
     
     setStack(availableJobs);
     setIsLoading(false);
   
-  }, [user, fetchedJobs, appliedApplications, isLoadingJobs, isLoadingApplied]);
+  }, [fetchedJobs, appliedApplications, isLoadingJobs, isLoadingApplied]);
 
-  const currentJob = stack[0];
+  const currentJob = stack.length > 0 ? stack[0] : null;
 
   const handleSwipe = useCallback((job: Job, direction: SwipeDirection) => {
-    // Add to history and remove from stack
+    // This function is now the single source of truth for what happens after a swipe.
     setHistory((prev) => [{ job, direction }, ...prev]);
     setStack((prev) => prev.slice(1));
 
@@ -79,8 +85,8 @@ export function SwipeFeed() {
         companyName: job.companyName,
         recruiterId: job.postedBy,
         answers: [],
-        resumeUrl: '', // This would be populated in a real scenario
-        matchScore: Math.floor(Math.random() * 30) + 70, // Example match score
+        resumeUrl: '',
+        matchScore: Math.floor(Math.random() * 30) + 70,
         status: 'pending',
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
@@ -107,12 +113,13 @@ export function SwipeFeed() {
     if (!currentJob) return;
 
     const swipeAnimation = direction === 'right'
-      ? { x: 500, opacity: 0, rotate: 20, transition: { duration: 0.3 } }
-      : { x: -500, opacity: 0, rotate: -20, transition: { duration: 0.3 } };
+      ? { x: 500, opacity: 0, rotate: 20 }
+      : { x: -500, opacity: 0, rotate: -20 };
 
     controls.start(swipeAnimation).then(() => {
-      // The onSwipe callback in TinderStyleJobCard will not be called for programmatic swipes.
-      // So we call handleSwipe manually here.
+      // The onAnimationComplete callback on the component itself is more reliable.
+      // However, to be extra safe, we ensure handleSwipe is called.
+      // This logic will be primarily handled by onSwipe now.
       handleSwipe(currentJob, direction);
     });
   }
@@ -122,9 +129,6 @@ export function SwipeFeed() {
       const lastAction = history[0];
       setHistory((prev) => prev.slice(1));
       setStack((prev) => [lastAction.job, ...prev]);
-
-      // Note: This doesn't undo the application creation in Firestore. 
-      // A more robust implementation would handle that.
     }
   };
   
@@ -162,10 +166,12 @@ export function SwipeFeed() {
               );
             }).reverse() // Render top card last to be visually on top
           ) : (
-            <div className="text-center p-8 bg-card rounded-2xl shadow-md w-full">
-                <h3 className="text-xl font-semibold font-headline text-slate-700">That’s all for now!</h3>
-                <p className="text-muted-foreground mt-2 text-sm">New opportunities will appear as soon as they match your profile.</p>
-            </div>
+            !isLoading && (
+              <div className="text-center p-8 bg-card rounded-2xl shadow-md w-full">
+                  <h3 className="text-xl font-semibold font-headline text-slate-700">That’s all for now!</h3>
+                  <p className="text-muted-foreground mt-2 text-sm">New opportunities will appear as soon as they match your profile.</p>
+              </div>
+            )
           )}
         </AnimatePresence>
       </div>
