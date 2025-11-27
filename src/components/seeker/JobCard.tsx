@@ -19,7 +19,7 @@ export function JobCard({ job }: JobCardProps) {
   }, []);
 
   return (
-    <Card className="w-full max-w-sm h-[500px] flex flex-col shadow-xl border-2 rounded-2xl overflow-hidden">
+    <Card className="w-full max-w-sm h-[500px] flex flex-col shadow-xl border-2 rounded-2xl overflow-hidden bg-card">
       <CardHeader className="bg-card p-4">
         <div className="flex items-start gap-4">
           <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center">
@@ -50,6 +50,9 @@ export function JobCard({ job }: JobCardProps) {
               {job.requiredSkills.slice(0, 5).map((skill) => (
                 <Badge key={skill} variant="secondary">{skill}</Badge>
               ))}
+               {job.requiredSkills.length > 5 && (
+                <Badge variant="outline">+{job.requiredSkills.length - 5} more</Badge>
+              )}
             </div>
           </div>
           <div>

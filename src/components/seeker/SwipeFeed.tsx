@@ -1,12 +1,11 @@
-
 'use client';
 
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { JobCard } from './JobCard';
+import { TinderStyleJobCard } from './TinderStyleJobCard';
 import type { Job, Application } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { X, Heart, Undo } from 'lucide-react';
-import { AnimatePresence, motion, PanInfo } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { HeartBalloonOverlay } from './HeartBalloonOverlay';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, serverTimestamp, query, where, addDoc } from 'firebase/firestore';
@@ -14,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '../ui/skeleton';
 import { mockJobs } from '@/lib/data';
 
-const SWIPE_THRESHOLD = 50;
+type SwipeDirection = 'left' | 'right';
 
 export function SwipeFeed() {
   const { user } = useUser();
@@ -22,10 +21,9 @@ export function SwipeFeed() {
   const { toast } = useToast();
 
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-  const [history, setHistory] = useState<{ job: Job, direction: 'like' | 'dislike' }[]>([]);
-  const [isSwiping, setIsSwiping] = useState(false);
-  const [swipeDirection, setSwipeDirection] = useState<'like' | 'dislike' | null>(null);
+  const [history, setHistory] = useState<{ job: Job; direction: SwipeDirection }[]>([]);
   const [showHearts, setShowHearts] = useState(false);
 
   const jobsQuery = useMemoFirebase(() => {
@@ -41,7 +39,6 @@ export function SwipeFeed() {
   }, [firestore, user]);
 
   const { data: appliedApplications, isLoading: isLoadingApplied } = useCollection<Application>(appliedJobsQuery);
-
 
   useEffect(() => {
     if (isLoadingJobs || isLoadingApplied) {
@@ -61,39 +58,35 @@ export function SwipeFeed() {
       availableJobs = fetchedJobs.filter(job => !appliedJobIds.has(job.id));
     }
 
-    // If after fetching and filtering, there are no jobs from Firestore, use mock data.
     if (availableJobs.length === 0) {
       const availableMockJobs = mockJobs.filter(job => !appliedJobIds.has(job.id));
-      setJobs(availableMockJobs);
+      setJobs(availableMockJobs.reverse()); // Reverse to pop from the end
     } else {
-      setJobs(availableJobs);
+      setJobs(availableJobs.reverse()); // Reverse to pop from the end
     }
     
+    setCurrentIndex(0);
     setIsLoading(false);
 
   }, [user, fetchedJobs, appliedApplications, isLoadingJobs, isLoadingApplied]);
 
+  const activeJobs = useMemo(() => jobs.slice(currentIndex), [jobs, currentIndex]);
 
-  const activeIndex = jobs.length - 1;
-  const activeJob = useMemo(() => jobs[activeIndex], [jobs, activeIndex]);
+  const handleSwipe = useCallback((job: Job, direction: SwipeDirection) => {
+    setHistory((prev) => [...prev, { job, direction }]);
+    setCurrentIndex((prev) => prev + 1);
 
-  const handleSwipeAction = useCallback((direction: 'like' | 'dislike') => {
-    if (!activeJob || isSwiping) return;
-
-    setIsSwiping(true);
-    setSwipeDirection(direction);
-
-    if (direction === 'like' && user && firestore) {
+    if (direction === 'right' && user && firestore) {
         setShowHearts(true);
         setTimeout(() => setShowHearts(false), 2000);
 
         const applicationData = {
           candidateId: user.uid,
-          jobId: activeJob.id,
-          jobTitle: activeJob.title, // Denormalize for mock data display
-          companyId: activeJob.companyId,
-          companyName: activeJob.companyName, // Denormalize
-          recruiterId: activeJob.postedBy,
+          jobId: job.id,
+          jobTitle: job.title,
+          companyId: job.companyId,
+          companyName: job.companyName,
+          recruiterId: job.postedBy,
           answers: [],
           resumeUrl: '',
           matchScore: Math.floor(Math.random() * 30) + 70,
@@ -106,65 +99,32 @@ export function SwipeFeed() {
         addDoc(applicationsCollection, applicationData).then(() => {
           toast({
               title: "Application Sent!",
-              description: `You've applied for the ${activeJob.title} position.`,
+              description: `You've applied for the ${job.title} position.`,
           });
         });
     }
-    
-    // This timeout ensures the exit animation completes before the state updates
-    setTimeout(() => {
-        setHistory((prev) => [...prev, { job: activeJob, direction }]);
-        setJobs((prev) => prev.slice(0, prev.length - 1));
-        setIsSwiping(false);
-        setSwipeDirection(null);
-    }, 400);
-
-  }, [activeJob, isSwiping, user, firestore, toast]);
+  }, [user, firestore, toast]);
 
   const handleUndo = () => {
     if (history.length > 0) {
-      const lastAction = history[history.length - 1];
-      setJobs((prev) => [...prev, lastAction.job]);
       setHistory((prev) => prev.slice(0, -1));
+      setCurrentIndex((prev) => prev - 1);
     }
   };
 
-  const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-    if (Math.abs(info.offset.x) > SWIPE_THRESHOLD) {
-      const direction = info.offset.x > 0 ? 'like' : 'dislike';
-      handleSwipeAction(direction);
-    }
-  };
-
-  const variants = {
-    initial: { scale: 0.95, y: 30, opacity: 0.8 },
-    animate: { 
-      scale: 1, 
-      y: 0, 
-      opacity: 1, 
-      transition: { type: 'spring', stiffness: 300, damping: 30, duration: 0.3 } 
-    },
-    exit: (customDirection: 'like' | 'dislike') => ({
-      x: customDirection === 'like' ? 400 : -400,
-      opacity: 0,
-      rotate: customDirection === 'like' ? 20 : -20,
-      transition: { duration: 0.4, ease: 'easeIn' }
-    }),
-  };
-  
   if (isLoading) {
-      return (
-          <div className="flex flex-col items-center justify-center w-full h-full p-4 gap-6">
-              <div className="relative w-full max-w-sm h-[500px] flex items-center justify-center">
-                  <Skeleton className="w-full h-full rounded-2xl" />
-              </div>
-              <div className="flex items-center gap-4">
-                  <Skeleton className="w-16 h-16 rounded-full" />
-                  <Skeleton className="w-20 h-20 rounded-full" />
-                  <Skeleton className="w-20 h-20 rounded-full" />
-              </div>
-          </div>
-      );
+    return (
+        <div className="flex flex-col items-center justify-center w-full h-full p-4 gap-6">
+            <div className="relative w-full max-w-sm h-[500px] flex items-center justify-center">
+                <Skeleton className="w-full h-full rounded-2xl" />
+            </div>
+            <div className="flex items-center gap-4">
+                <Skeleton className="w-16 h-16 rounded-full" />
+                <Skeleton className="w-20 h-20 rounded-full" />
+                <Skeleton className="w-20 h-20 rounded-full" />
+            </div>
+        </div>
+    );
   }
 
   return (
@@ -172,24 +132,18 @@ export function SwipeFeed() {
       {showHearts && <HeartBalloonOverlay />}
       <div className="relative w-full max-w-sm h-[500px] flex items-center justify-center">
         <AnimatePresence>
-          {activeJob ? (
-            <>
-              <div className="absolute w-full h-full rounded-2xl bg-secondary transform-gpu scale-95 top-2" />
-               <motion.div
-                  key={activeJob.id}
-                  custom={swipeDirection}
-                  variants={variants}
-                  initial="initial"
-                  animate="animate"
-                  exit="exit"
-                  drag="x"
-                  dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
-                  onDragEnd={handleDragEnd}
-                  className="absolute cursor-grab active:cursor-grabbing"
-                >
-                  <JobCard job={activeJob} />
-                </motion.div>
-            </>
+          {activeJobs.length > 0 ? (
+            activeJobs.map((job, index) => {
+              const isTop = index === activeJobs.length - 1;
+              return (
+                <TinderStyleJobCard
+                  key={job.id}
+                  job={job}
+                  isTop={isTop}
+                  onSwipe={handleSwipe}
+                />
+              );
+            })
           ) : (
             <div className="text-center p-8 bg-card rounded-2xl shadow-md w-full">
                 <h3 className="text-xl font-semibold font-headline text-slate-700">That’s all for now!</h3>
@@ -210,12 +164,12 @@ export function SwipeFeed() {
         >
           <Undo className="h-8 w-8 text-amber-500" />
         </Button>
+        {/* These buttons are currently for show. The swipe action will be handled by the card itself */}
         <Button
           variant="outline"
           size="icon"
           className="w-20 h-20 rounded-full bg-white shadow-lg hover:bg-red-100"
-          onClick={() => handleSwipeAction('dislike')}
-          disabled={!activeJob || isSwiping}
+          disabled={activeJobs.length === 0}
           aria-label="Skip job"
         >
           <X className="h-10 w-10 text-red-500" />
@@ -224,8 +178,7 @@ export function SwipeFeed() {
           variant="outline"
           size="icon"
           className="w-20 h-20 rounded-full bg-white shadow-lg hover:bg-green-100"
-          onClick={() => handleSwipeAction('like')}
-          disabled={!activeJob || isSwiping}
+          disabled={activeJobs.length === 0}
           aria-label="I'm interested"
         >
           <Heart className="h-10 w-10 text-green-500" />
