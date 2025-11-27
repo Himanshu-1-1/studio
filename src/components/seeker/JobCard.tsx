@@ -1,3 +1,6 @@
+'use client';
+
+import * as React from 'react';
 import type { Job } from '@/lib/types';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,8 +11,12 @@ interface JobCardProps {
 }
 
 export function JobCard({ job }: JobCardProps) {
-  // Mock match score for demonstration
-  const matchScore = Math.floor(Math.random() * 30) + 70;
+  const [matchScore, setMatchScore] = React.useState<number | null>(null);
+
+  React.useEffect(() => {
+    // Calculate match score on the client side to avoid hydration mismatch
+    setMatchScore(Math.floor(Math.random() * 30) + 70);
+  }, []);
 
   return (
     <Card className="w-full max-w-sm h-[500px] flex flex-col shadow-xl border-2 rounded-2xl overflow-hidden">
@@ -55,9 +62,13 @@ export function JobCard({ job }: JobCardProps) {
         <div className="flex items-center justify-between w-full">
             <span className="text-xs text-muted-foreground">Match Score</span>
             <div className="flex items-center gap-2">
-                <span className={`font-bold text-lg ${matchScore > 85 ? 'text-green-500' : 'text-amber-500'}`}>
-                    {matchScore}%
-                </span>
+                {matchScore !== null ? (
+                    <span className={`font-bold text-lg ${matchScore > 85 ? 'text-green-500' : 'text-amber-500'}`}>
+                        {matchScore}%
+                    </span>
+                ) : (
+                    <span className="font-bold text-lg text-muted-foreground">...%</span>
+                )}
             </div>
         </div>
       </CardFooter>
