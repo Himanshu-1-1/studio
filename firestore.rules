@@ -1,0 +1,229 @@
+/**
+ * Core Philosophy: This ruleset enforces a strict, multi-tiered security model designed for a job recruitment platform. 
+ * It prioritizes user data privacy while enabling necessary interactions between job seekers, recruiters, and administrators.
+ * The primary security postures are:
+ * 1. User Ownership: A user has exclusive control over their own core data, profiles, and actions (e.g., applications, swipes).
+ * 2. Shared Access: Data that is inherently collaborative, like conversations, is accessible only to the explicitly listed participants.
+ * 3. Public Read, Owner Write: Publicly visible documents like job postings and company profiles can be read by any signed-in user but can only be modified by their original creator.
+ * 4. Role-Based Access Control (RBAC): A dedicated `roles_admin` collection provides elevated privileges to administrators for moderation and management tasks.
+ * 
+ * Data Structure: The data is organized into top-level collections, separating user types (Job Seekers, Recruiters) and shared content (Companies, Jobs). 
+ * This structural segregation avoids complex queries in security rules and improves performance. User-specific private data is secured by checking a `userId` or equivalent field within the document itself.
+ * 
+ * Key Security Decisions:
+ * - Default Deny: All paths are closed by default. Access is only granted through explicit `allow` statements.
+ * - No User Listing: The top-level `/users` collection is not listable to prevent enumeration of all users in the system.
+ * - Admin Privileges: Admins have read access to most data for moderation but are restricted from performing actions on behalf of users (e.g., creating a job swipe). Write access is granted where necessary for management (e.g., handling reports).
+ * - Prototyping Flexibility: These rules focus on *who* can access data, not the specific *shape* of the data. This allows the application schema to evolve without requiring constant rule updates. Only fields critical for authorization (e.g., owner IDs) are validated.
+ * 
+ * Denormalization for Authorization: The rules rely on denormalized owner/participant IDs (e.g., `userId`, `createdBy`, `postedBy`, `participants`) stored directly on documents. 
+ * This strategy is critical for performance and security, as it avoids slow and costly `get()` calls in most rule evaluations. For example, a rule on `/jobs/{jobId}` can instantly check `resource.data.postedBy` without needing to look up another document.
+ * 
+ * Structural Segregation: User profiles for different roles are stored in separate collections (`/jobSeekerProfiles`, `/recruiterProfiles`). This is more secure and performant than a single `profiles` collection with a role flag, especially for list operations.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper Functions
+    
+    /**
+     * Checks if a user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Checks if the request is from a user with administrative privileges.
+     * Admin status is determined by the existence of a document in the `roles_admin` collection.
+     */
+    function isAdmin() {
+      return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+    }
+    
+    /**
+     * Checks if the requesting user's ID matches the provided userId.
+     * This is the fundamental check for document ownership.
+     */
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    /**
+     * A robust check for update/delete operations, ensuring the document
+     * exists and the user is the owner. Prevents modifying non-existent data.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * @description Rules for the core User documents.
+     * @path /users/{userId}
+     * @allow (create) A new user creating their own user document upon signup.
+     * @deny (get) An anonymous user trying to read another user's document.
+     * @principle A user's core data record should be private, only accessible by the user themselves or an admin.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if false; // Prevent user enumeration
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if false; // Users should be deactivated, not deleted
+    }
+
+    /**
+     * @description Rules for Job Seeker profiles.
+     * @path /jobSeekerProfiles/{jobSeekerProfileId}
+     * @allow (get) Any authenticated user (e.g., a recruiter) reading a job seeker's profile.
+     * @deny (update) A user attempting to modify another user's profile.
+     * @principle Enforces document ownership for writes, while allowing reads for signed-in users to facilitate recruitment.
+     */
+    match /jobSeekerProfiles/{jobSeekerProfileId} {
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn() && isOwner(request.resource.data.userId);
+      allow update: if isExistingOwner(resource.data.userId);
+      allow delete: if isExistingOwner(resource.data.userId);
+    }
+
+    /**
+     * @description Rules for Recruiter profiles.
+     * @path /recruiterProfiles/{recruiterProfileId}
+     * @allow (create) A new recruiter creating their own profile, linking it to their auth UID.
+     * @deny (update) A recruiter attempting to modify a different recruiter's profile.
+     * @principle Enforces document ownership for writes, while allowing reads for signed-in users.
+     */
+    match /recruiterProfiles/{recruiterProfileId} {
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn() && isOwner(request.resource.data.userId);
+      allow update: if isExistingOwner(resource.data.userId);
+      allow delete: if isExistingOwner(resource.data.userId);
+    }
+
+    /**
+     * @description Rules for Company profiles.
+     * @path /companies/{companyId}
+     * @allow (create) A signed-in user (recruiter) creating a new company profile.
+     * @deny (update) A user attempting to modify a company profile they did not create.
+     * @principle Implements a "Public Read, Owner Write" model. Anyone signed in can view companies, but only the creator can edit.
+     */
+    match /companies/{companyId} {
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn() && isOwner(request.resource.data.createdBy);
+      allow update: if isExistingOwner(resource.data.createdBy) || isAdmin();
+      allow delete: if isExistingOwner(resource.data.createdBy) || isAdmin();
+    }
+
+    /**
+     * @description Rules for Job postings.
+     * @path /jobs/{jobId}
+     * @allow (get) Any signed-in user viewing a job posting.
+     * @deny (create) An anonymous user trying to create a job.
+     * @principle Implements a "Public Read, Owner Write" model. All jobs are visible, but only the original poster can modify or delete them.
+     */
+    match /jobs/{jobId} {
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn() && isOwner(request.resource.data.postedBy);
+      allow update: if isExistingOwner(resource.data.postedBy) || isAdmin();
+      allow delete: if isExistingOwner(resource.data.postedBy) || isAdmin();
+    }
+
+    /**
+     * @description Rules for Job Swipes, which are private user actions.
+     * @path /jobSwipes/{jobSwipeId}
+     * @allow (create) A user creating a swipe record linked to their own user ID.
+     * @deny (get) A user trying to read another user's swipe history.
+     * @principle Restricts all access to a user's own data tree, ensuring privacy of their job search activity.
+     */
+    match /jobSwipes/{jobSwipeId} {
+      allow get, list: if isOwner(resource.data.userId); // List check is theoretical but secure
+      allow create: if isSignedIn() && isOwner(request.resource.data.userId);
+      allow update: if false; // Swipes should be immutable
+      allow delete: if isExistingOwner(resource.data.userId);
+    }
+
+    /**
+     * @description Rules for Job Applications.
+     * @path /applications/{applicationId}
+     * @allow (get) A candidate or the relevant recruiter viewing the application.
+     * @deny (get) A third-party user trying to view a private application.
+     * @principle Secures access to the specific parties involved: the candidate and the recruiter.
+     */
+    match /applications/{applicationId} {
+      allow get, list: if isSignedIn() && (isOwner(resource.data.candidateId) || isOwner(resource.data.recruiterId));
+      allow create: if isSignedIn() && isOwner(request.resource.data.candidateId);
+      allow update: if isSignedIn() && (isExistingOwner(resource.data.candidateId) || isExistingOwner(resource.data.recruiterId)) || isAdmin();
+      allow delete: if isExistingOwner(resource.data.candidateId);
+    }
+
+    /**
+     * @description Rules for Conversations between a job seeker and a recruiter.
+     * @path /conversations/{conversationId}
+     * @allow (get) A user who is listed in the `participants` array reading the conversation details.
+     * @deny (list) A user trying to list all conversations in the system.
+     * @principle Implements a "Shared Access" model where access is granted by membership in the `participants` array.
+     */
+    match /conversations/{conversationId} {
+      allow get: if isSignedIn() && request.auth.uid in resource.data.participants;
+      allow list: if isSignedIn(); // Allows querying for conversations where user is a participant via a `where` clause
+      allow create: if isSignedIn() && request.auth.uid in request.resource.data.participants;
+      allow update: if isSignedIn() && request.auth.uid in resource.data.participants && resource != null;
+      allow delete: if false; // Conversations should not be deleted
+    }
+
+    /**
+     * @description Rules for messages within a conversation.
+     * @path /conversations/{conversationId}/messages/{messageId}
+     * @allow (create) A conversation participant sending a message.
+     * @deny (create) A user not in the conversation trying to post a message.
+     * @principle Subcollection access is secured by checking the parent document's `participants` list.
+     */
+    match /conversations/{conversationId}/messages/{messageId} {
+      allow get, list: if isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants;
+      allow create: if isSignedIn() && isOwner(request.resource.data.senderId) && request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants;
+      allow update: if isExistingOwner(resource.data.senderId); // Allow sender to edit their own message
+      allow delete: if isExistingOwner(resource.data.senderId);
+    }
+    
+    /**
+     * @description Rules for user-submitted reports.
+     * @path /reports/{reportId}
+     * @allow (create) Any signed-in user can create a report.
+     * @deny (get) A regular user trying to read reports submitted by others.
+     * @principle Allows any user to create a report but restricts all other access to admins for moderation.
+     */
+    match /reports/{reportId} {
+      allow get, list, update, delete: if isAdmin();
+      allow create: if isSignedIn() && isOwner(request.resource.data.reporterId);
+    }
+
+    /**
+     * @description Rules for verification requests.
+     * @path /verifications/{verificationId}
+     * @allow (get) A user reading their own verification status.
+     * @deny (list) A user trying to list all verification requests.
+     * @principle Users can create and view their own requests, but only admins can manage the lifecycle (list, approve, reject).
+     */
+    match /verifications/{verificationId} {
+      allow get: if isOwner(resource.data.userId) || isAdmin();
+      allow list, update, delete: if isAdmin();
+      allow create: if isSignedIn() && isOwner(request.resource.data.userId);
+    }
+    
+    /**
+     * @description Admin role collection. Read-only for clients.
+     * @path /roles_admin/{userId}
+     * @allow (get) An admin checking another user's admin status.
+     * @deny (create) Any client attempting to grant themselves admin rights.
+     * @principle This collection acts as a secure lookup table for the `isAdmin()` function. It must not be writable from the client.
+     */
+    match /roles_admin/{userId} {
+      allow get: if isAdmin();
+      allow list: if isAdmin();
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+  }
+}

@@ -1,0 +1,919 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user in the system, storing core authentication and role information.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity."
+        },
+        "email": {
+          "type": "string",
+          "description": "User's email address.",
+          "format": "email"
+        },
+        "fullName": {
+          "type": "string",
+          "description": "User's full name."
+        },
+        "phone": {
+          "type": "string",
+          "description": "User's phone number."
+        },
+        "role": {
+          "type": "string",
+          "description": "User's role in the system (student, graduate, experienced, recruiter, admin)."
+        },
+        "verificationLevel": {
+          "type": "string",
+          "description": "User's verification level (unverified, partial, verified)."
+        },
+        "status": {
+          "type": "string",
+          "description": "User's account status (active, suspended, banned)."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp of when the user was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp of when the user was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "fullName",
+        "role",
+        "verificationLevel",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "JobSeekerProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "JobSeekerProfile",
+      "type": "object",
+      "description": "Represents a job seeker's profile, storing details relevant to their job search.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the JobSeekerProfile entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:1 JobSeekerProfile)"
+        },
+        "type": {
+          "type": "string",
+          "description": "Job seeker type (student, graduate, experienced)."
+        },
+        "fullName": {
+          "type": "string",
+          "description": "Job seeker's full name."
+        },
+        "headline": {
+          "type": "string",
+          "description": "Job seeker's headline (e.g., CSE Fresher | React & Node.js)."
+        },
+        "skills": {
+          "type": "array",
+          "description": "List of job seeker's skills.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "domain": {
+          "type": "string",
+          "description": "Job seeker's domain (e.g., IT, Electronics)."
+        },
+        "preferredRoles": {
+          "type": "array",
+          "description": "List of job seeker's preferred roles.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "experienceYears": {
+          "type": "number",
+          "description": "Job seeker's years of experience (0 for freshers)."
+        },
+        "preferredLocations": {
+          "type": "array",
+          "description": "List of job seeker's preferred locations.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "resumeUrl": {
+          "type": "string",
+          "description": "URL of the job seeker's resume.",
+          "format": "uri"
+        },
+        "linkedinUrl": {
+          "type": "string",
+          "description": "URL of the job seeker's LinkedIn profile.",
+          "format": "uri"
+        },
+        "githubUrl": {
+          "type": "string",
+          "description": "URL of the job seeker's GitHub profile.",
+          "format": "uri"
+        },
+        "portfolioUrl": {
+          "type": "string",
+          "description": "URL of the job seeker's portfolio.",
+          "format": "uri"
+        },
+        "graduationYear": {
+          "type": "number",
+          "description": "Job seeker's graduation year."
+        },
+        "collegeName": {
+          "type": "string",
+          "description": "Job seeker's college name."
+        },
+        "verification": {
+          "type": "string",
+          "description": "Reference to Verification. (Relationship: JobSeekerProfile 1:1 Verification)"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp of when the profile was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp of when the profile was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "type",
+        "fullName",
+        "skills",
+        "domain",
+        "preferredRoles",
+        "preferredLocations",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "RecruiterProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "RecruiterProfile",
+      "type": "object",
+      "description": "Represents a recruiter's profile, storing details relevant to their recruitment activities.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the RecruiterProfile entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:1 RecruiterProfile)"
+        },
+        "fullName": {
+          "type": "string",
+          "description": "Recruiter's full name."
+        },
+        "email": {
+          "type": "string",
+          "description": "Recruiter's email address.",
+          "format": "email"
+        },
+        "phone": {
+          "type": "string",
+          "description": "Recruiter's phone number."
+        },
+        "roleInCompany": {
+          "type": "string",
+          "description": "Recruiter's role in the company (HR, TA, Founder, etc.)."
+        },
+        "companyId": {
+          "type": "string",
+          "description": "Reference to Company. (Relationship: RecruiterProfile 1:1 Company)"
+        },
+        "workEmailVerified": {
+          "type": "boolean",
+          "description": "Indicates if the recruiter's work email is verified."
+        },
+        "linkedinUrl": {
+          "type": "string",
+          "description": "URL of the recruiter's LinkedIn profile.",
+          "format": "uri"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp of when the profile was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp of when the profile was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "fullName",
+        "email",
+        "roleInCompany",
+        "workEmailVerified",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Company": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Company",
+      "type": "object",
+      "description": "Represents a company, storing details relevant to their recruitment activities.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Company entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Company name."
+        },
+        "website": {
+          "type": "string",
+          "description": "Company website URL.",
+          "format": "uri"
+        },
+        "domain": {
+          "type": "string",
+          "description": "Company domain (derived from website or email)."
+        },
+        "registrationNo": {
+          "type": "string",
+          "description": "Company registration number (GSTIN / CIN if available)."
+        },
+        "docs": {
+          "type": "array",
+          "description": "List of documents associated with the company.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "verificationStatus": {
+          "type": "string",
+          "description": "Company verification status (unverified, pending, verified, rejected)."
+        },
+        "createdBy": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Company)"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp of when the company was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp of when the company was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "website",
+        "domain",
+        "verificationStatus",
+        "createdBy",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Job": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Job",
+      "type": "object",
+      "description": "Represents a job posting.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Job entity."
+        },
+        "companyId": {
+          "type": "string",
+          "description": "Reference to Company. (Relationship: Company 1:N Job)"
+        },
+        "postedBy": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Job)"
+        },
+        "title": {
+          "type": "string",
+          "description": "Job title."
+        },
+        "roleType": {
+          "type": "string",
+          "description": "Job role type (internship, full-time, part-time)."
+        },
+        "experienceLevel": {
+          "type": "string",
+          "description": "Job experience level (fresher, 0-1, 1-3, 3+)."
+        },
+        "domain": {
+          "type": "string",
+          "description": "Job domain (IT, Electronics, etc.)."
+        },
+        "requiredSkills": {
+          "type": "array",
+          "description": "List of required skills for the job.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "location": {
+          "type": "string",
+          "description": "Job location."
+        },
+        "salaryRange": {
+          "type": "string",
+          "description": "Job salary range."
+        },
+        "description": {
+          "type": "string",
+          "description": "Job description."
+        },
+        "openings": {
+          "type": "number",
+          "description": "Number of job openings."
+        },
+        "screeningQuestions": {
+          "type": "array",
+          "description": "List of screening questions for the job.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "isActive": {
+          "type": "boolean",
+          "description": "Indicates if the job is active."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp of when the job was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp of when the job was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "companyId",
+        "postedBy",
+        "title",
+        "roleType",
+        "experienceLevel",
+        "domain",
+        "requiredSkills",
+        "location",
+        "description",
+        "openings",
+        "screeningQuestions",
+        "isActive",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "JobSwipe": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "JobSwipe",
+      "type": "object",
+      "description": "Represents a job seeker's swipe on a job.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the JobSwipe entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N JobSwipe)"
+        },
+        "jobId": {
+          "type": "string",
+          "description": "Reference to Job. (Relationship: Job 1:N JobSwipe)"
+        },
+        "direction": {
+          "type": "string",
+          "description": "Swipe direction (left or right)."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp of when the swipe was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "jobId",
+        "direction",
+        "createdAt"
+      ]
+    },
+    "Application": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Application",
+      "type": "object",
+      "description": "Represents a job application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Application entity."
+        },
+        "candidateId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Application)"
+        },
+        "jobId": {
+          "type": "string",
+          "description": "Reference to Job. (Relationship: Job 1:N Application)"
+        },
+        "recruiterId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Application)"
+        },
+        "companyId": {
+          "type": "string",
+          "description": "Reference to Company. (Relationship: Company 1:N Application)"
+        },
+        "answers": {
+          "type": "array",
+          "description": "List of answers to screening questions.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "resumeUrl": {
+          "type": "string",
+          "description": "URL of the candidate's resume.",
+          "format": "uri"
+        },
+        "matchScore": {
+          "type": "number",
+          "description": "Match score between the candidate and the job."
+        },
+        "status": {
+          "type": "string",
+          "description": "Application status (pending, accepted, rejected)."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp of when the application was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp of when the application was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "candidateId",
+        "jobId",
+        "recruiterId",
+        "companyId",
+        "answers",
+        "resumeUrl",
+        "matchScore",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Conversation": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Conversation",
+      "type": "object",
+      "description": "Represents a conversation between a recruiter and a candidate.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Conversation entity."
+        },
+        "participants": {
+          "type": "array",
+          "description": "List of user IDs participating in the conversation.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "jobId": {
+          "type": "string",
+          "description": "Reference to Job. (Relationship: Job 1:1 Conversation)"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp of when the conversation was created.",
+          "format": "date-time"
+        },
+        "lastMessageAt": {
+          "type": "string",
+          "description": "Timestamp of when the last message was sent in the conversation.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "Conversation status (active or closed)."
+        }
+      },
+      "required": [
+        "id",
+        "participants",
+        "jobId",
+        "createdAt",
+        "lastMessageAt",
+        "status"
+      ]
+    },
+    "Message": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Message",
+      "type": "object",
+      "description": "Represents a message in a conversation.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Message entity."
+        },
+        "conversationId": {
+          "type": "string",
+          "description": "Reference to Conversation. (Relationship: Conversation 1:N Message)"
+        },
+        "senderId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Message)"
+        },
+        "text": {
+          "type": "string",
+          "description": "Message text."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp of when the message was created.",
+          "format": "date-time"
+        },
+        "readBy": {
+          "type": "array",
+          "description": "List of user IDs who have read the message.",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "conversationId",
+        "senderId",
+        "text",
+        "createdAt",
+        "readBy"
+      ]
+    },
+    "Report": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Report",
+      "type": "object",
+      "description": "Represents a report of abuse or fake jobs.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Report entity."
+        },
+        "reporterId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Report)"
+        },
+        "targetType": {
+          "type": "string",
+          "description": "Type of target being reported (job, user, company)."
+        },
+        "targetId": {
+          "type": "string",
+          "description": "ID of the target being reported."
+        },
+        "reason": {
+          "type": "string",
+          "description": "Reason for the report (fake job, asking for money, abusive, misleading, other)."
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the report."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp of when the report was created.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "Report status (open or reviewed)."
+        },
+        "reviewedBy": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Report)"
+        },
+        "reviewedAt": {
+          "type": "string",
+          "description": "Timestamp of when the report was reviewed.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "reporterId",
+        "targetType",
+        "targetId",
+        "reason",
+        "description",
+        "createdAt",
+        "status"
+      ]
+    },
+    "Verification": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Verification",
+      "type": "object",
+      "description": "Represents a verification request for job seekers and recruiters.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Verification entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Verification)"
+        },
+        "roleType": {
+          "type": "string",
+          "description": "Type of role being verified (graduate, experienced)."
+        },
+        "documents": {
+          "type": "array",
+          "description": "List of verification documents.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "links": {
+          "type": "string",
+          "description": "List of verification links."
+        },
+        "status": {
+          "type": "string",
+          "description": "Verification status (pending, approved, rejected)."
+        },
+        "reviewedBy": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Verification)"
+        },
+        "reviewedAt": {
+          "type": "string",
+          "description": "Timestamp of when the verification was reviewed.",
+          "format": "date-time"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp of when the verification was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "roleType",
+        "documents",
+        "status",
+        "createdAt"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores core user data including email, full name, role, and status. Includes denormalized 'role' for easier querying and authorization.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique ID of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/jobSeekerProfiles/{jobSeekerProfileId}",
+        "definition": {
+          "entityName": "JobSeekerProfile",
+          "schema": {
+            "$ref": "#/backend/entities/JobSeekerProfile"
+          },
+          "description": "Stores job seeker profile data, including skills, domain, and preferences. This collection stores all profiles for Job Seekers. Authorization is based on a security rule that ensure that the `userId` property of the document being written matches the `request.auth.uid`. Profiles can be queried by admins.",
+          "params": [
+            {
+              "name": "jobSeekerProfileId",
+              "description": "The unique ID of the job seeker profile, often matching the userId."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/recruiterProfiles/{recruiterProfileId}",
+        "definition": {
+          "entityName": "RecruiterProfile",
+          "schema": {
+            "$ref": "#/backend/entities/RecruiterProfile"
+          },
+          "description": "Stores recruiter profile data, including role in company and contact information. This collection stores all profiles for recruiters. Authorization is based on a security rule that ensure that the `userId` property of the document being written matches the `request.auth.uid`. Profiles can be queried by admins.",
+          "params": [
+            {
+              "name": "recruiterProfileId",
+              "description": "The unique ID of the recruiter profile, often matching the userId."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/companies/{companyId}",
+        "definition": {
+          "entityName": "Company",
+          "schema": {
+            "$ref": "#/backend/entities/Company"
+          },
+          "description": "Stores company data, including name, website, and verification status. Authorization is based on the `createdBy` field matching the user ID or admin role.",
+          "params": [
+            {
+              "name": "companyId",
+              "description": "The unique ID of the company."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/jobs/{jobId}",
+        "definition": {
+          "entityName": "Job",
+          "schema": {
+            "$ref": "#/backend/entities/Job"
+          },
+          "description": "Stores job posting data, including title, description, and requirements. Authorization is based on the `postedBy` field matching the user ID or admin role.",
+          "params": [
+            {
+              "name": "jobId",
+              "description": "The unique ID of the job posting."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/jobSwipes/{jobSwipeId}",
+        "definition": {
+          "entityName": "JobSwipe",
+          "schema": {
+            "$ref": "#/backend/entities/JobSwipe"
+          },
+          "description": "Stores job swipe data, tracking user swipes on job postings. Authorization is based on the `userId` field matching the user ID.",
+          "params": [
+            {
+              "name": "jobSwipeId",
+              "description": "The unique ID of the job swipe."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/applications/{applicationId}",
+        "definition": {
+          "entityName": "Application",
+          "schema": {
+            "$ref": "#/backend/entities/Application"
+          },
+          "description": "Stores job application data, including answers to screening questions and match score. Authorization is based on the `candidateId` field matching the user ID or the `recruiterId` field matching the user ID.",
+          "params": [
+            {
+              "name": "applicationId",
+              "description": "The unique ID of the job application."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/conversations/{conversationId}",
+        "definition": {
+          "entityName": "Conversation",
+          "schema": {
+            "$ref": "#/backend/entities/Conversation"
+          },
+          "description": "Stores conversation data between recruiters and candidates. Authorization is based on the `participants` array containing the user ID.",
+          "params": [
+            {
+              "name": "conversationId",
+              "description": "The unique ID of the conversation."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/conversations/{conversationId}/messages/{messageId}",
+        "definition": {
+          "entityName": "Message",
+          "schema": {
+            "$ref": "#/backend/entities/Message"
+          },
+          "description": "Stores messages within a conversation. Authorization is based on the `conversationId` and the `participants` array in the parent conversation document.",
+          "params": [
+            {
+              "name": "conversationId",
+              "description": "The unique ID of the conversation."
+            },
+            {
+              "name": "messageId",
+              "description": "The unique ID of the message."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/reports/{reportId}",
+        "definition": {
+          "entityName": "Report",
+          "schema": {
+            "$ref": "#/backend/entities/Report"
+          },
+          "description": "Stores reports of abuse or fake jobs. Authorization is based on admin role.",
+          "params": [
+            {
+              "name": "reportId",
+              "description": "The unique ID of the report."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/verifications/{verificationId}",
+        "definition": {
+          "entityName": "Verification",
+          "schema": {
+            "$ref": "#/backend/entities/Verification"
+          },
+          "description": "Stores verification requests for job seekers. Authorization is based on admin role and the verification request's `userId` field.",
+          "params": [
+            {
+              "name": "verificationId",
+              "description": "The unique ID of the verification request."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/roles_admin/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Documents in this collection grant admin privileges to the user. Existence of a document with the user's ID grants admin role.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique ID of the user."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure is designed to support a job seeking and recruitment platform, prioritizing security, scalability, and maintainability. It leverages denormalization and structural segregation to achieve authorization independence, making security rules simpler and more robust. The structure uses path-based ownership for user-specific data and membership maps for collaborative data. Explicit state modeling and predictable schema enhance debuggability and maintainability.\n\nAuthorization Independence:\nUser roles, profiles and company data are structured to avoid hierarchical dependencies. Specifically, the `jobs` collection does not rely on reading company data for authorization. Similarly, all user-owned data (profiles, applications, swipes) are stored under the `/users/{userId}` path or have the user ID denormalized within the document. This ensures all authorization checks can be done without `get()` calls, enabling atomic operations.\n\nQAPs Support:\n*   User data and profiles are segregated into separate collections (`users`, `jobSeekerProfiles`, `recruiterProfiles`) based on role, simplifying rules for listing and accessing user information.\n*   Path-based ownership (`/users/{userId}/...`) ensures that only the authenticated user can access their data.\n*   Membership maps are not used, as the database structure does not require collaborative authorization.\n*   The use of explicit role collections (`roles_admin/{uid}`) supports secure administrative functions."
+  }
+}
