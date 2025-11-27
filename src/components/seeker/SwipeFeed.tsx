@@ -82,23 +82,25 @@ export function SwipeFeed() {
     <div className="flex flex-col items-center justify-center w-full h-full p-4 gap-6">
       {showHearts && <HeartBalloonOverlay />}
       <div className="relative w-full max-w-sm h-[500px] flex items-center justify-center">
-        <div className="absolute w-full h-full rounded-2xl bg-secondary transform-gpu scale-95 top-2" />
         <AnimatePresence>
           {activeJob ? (
-             <motion.div
-                key={activeJob.id}
-                custom={swipeDirection}
-                variants={variants}
-                initial="initial"
-                animate="animate"
-                exit="exit"
-                drag="x"
-                dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
-                onDragEnd={handleDragEnd}
-                className="absolute cursor-grab active:cursor-grabbing"
-              >
-                <JobCard job={activeJob} />
-              </motion.div>
+            <>
+              <div className="absolute w-full h-full rounded-2xl bg-secondary transform-gpu scale-95 top-2" />
+               <motion.div
+                  key={activeJob.id}
+                  custom={swipeDirection}
+                  variants={variants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  drag="x"
+                  dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+                  onDragEnd={handleDragEnd}
+                  className="absolute cursor-grab active:cursor-grabbing"
+                >
+                  <JobCard job={activeJob} />
+                </motion.div>
+            </>
           ) : (
             <div className="text-center p-8 bg-card rounded-2xl shadow-md w-full">
                 <h3 className="text-xl font-semibold font-headline text-slate-700">That’s all for your profile for now.</h3>
