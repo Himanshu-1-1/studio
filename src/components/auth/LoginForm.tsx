@@ -52,6 +52,10 @@ export function LoginForm() {
         throw new Error('Login failed, user not found.');
       }
 
+      if (!firestore) {
+        throw new Error("Firestore not initialized");
+      }
+
       const userDocRef = doc(firestore, 'users', user.uid);
       const userDocSnap = await getDoc(userDocRef);
 

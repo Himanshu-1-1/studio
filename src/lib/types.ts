@@ -129,6 +129,7 @@ export interface Conversation {
   jobId: string;
   createdAt: Timestamp;
   lastMessageAt: Timestamp;
+  lastMessageText?: string;
   status: 'active' | 'closed';
 }
 
