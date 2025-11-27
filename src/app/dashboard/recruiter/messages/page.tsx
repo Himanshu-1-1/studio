@@ -181,17 +181,20 @@ function RecruiterMessagesContent() {
   const { data: conversations, isLoading } = useCollection<Conversation>(conversationsQuery);
 
   useEffect(() => {
-    const conversationId = searchParams.get('conversationId');
-    if (conversationId && conversations) {
-      const conv = conversations.find(c => c.id === conversationId);
-      if (conv) {
-        setSelectedConversation(conv);
+    if (isLoading || !conversations) return;
+
+    const conversationIdFromUrl = searchParams.get('conversationId');
+
+    if (conversationIdFromUrl) {
+      const targetConversation = conversations.find(c => c.id === conversationIdFromUrl);
+      if (targetConversation) {
+        setSelectedConversation(targetConversation);
       }
-    } else if (conversations && conversations.length > 0 && !selectedConversation) {
-        // Default to first conversation if none is selected via URL
-        setSelectedConversation(conversations[0]);
+    } else if (!selectedConversation && conversations.length > 0) {
+      // If no conversation is selected and there are conversations, default to the first one.
+      setSelectedConversation(conversations[0]);
     }
-  }, [searchParams, conversations, selectedConversation]);
+  }, [conversations, isLoading, searchParams, selectedConversation]);
 
   return (
     <div className="space-y-6 h-full flex flex-col">
