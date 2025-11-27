@@ -104,10 +104,10 @@ const formSchema = baseSchema
 
 type JobSeekerFormValues = z.infer<typeof formSchema>;
 
-const Step1 = () => (
+const Step1 = ({form}: {form: any}) => (
   <div className="space-y-4">
     <FormField
-      control={useForm<JobSeekerFormValues>().control}
+      control={form.control}
       name="fullName"
       render={({ field }) => (
         <FormItem>
@@ -120,6 +120,7 @@ const Step1 = () => (
       )}
     />
     <FormField
+      control={form.control}
       name="email"
       render={({ field }) => (
         <FormItem>
@@ -132,6 +133,7 @@ const Step1 = () => (
       )}
     />
     <FormField
+      control={form.control}
       name="password"
       render={({ field }) => (
         <FormItem>
@@ -144,6 +146,7 @@ const Step1 = () => (
       )}
     />
     <FormField
+      control={form.control}
       name="confirmPassword"
       render={({ field }) => (
         <FormItem>
@@ -156,12 +159,13 @@ const Step1 = () => (
       )}
     />
     <FormField
+      control={form.control}
       name="phone"
       render={({ field }) => (
         <FormItem>
           <FormLabel>Phone (Optional)</FormLabel>
           <FormControl>
-            <Input placeholder="+1 234 567 890" {...field} />
+            <Input placeholder="+1 234 567 890" {...field} value={field.value ?? ''} />
           </FormControl>
           <FormMessage />
         </FormItem>
@@ -170,10 +174,10 @@ const Step1 = () => (
   </div>
 );
 
-const Step2 = () => (
+const Step2 = ({form}: {form: any}) => (
   <div className="space-y-4">
     <FormField
-      control={useForm<JobSeekerFormValues>().control}
+      control={form.control}
       name="seekerType"
       render={({ field }) => (
         <FormItem>
@@ -199,10 +203,10 @@ const Step2 = () => (
   </div>
 );
 
-const StudentFields = () => (
+const StudentFields = ({form}: {form: any}) => (
   <div className="space-y-4">
     <FormField
-      control={useForm<JobSeekerFormValues>().control}
+      control={form.control}
       name="collegeEmail"
       render={({ field }) => (
         <FormItem>
@@ -211,7 +215,7 @@ const StudentFields = () => (
             <Input
               placeholder="you@yourcollege.edu"
               {...field}
-              value={field.value || ''}
+              value={field.value ?? ''}
             />
           </FormControl>
           <FormMessage />
@@ -219,6 +223,7 @@ const StudentFields = () => (
       )}
     />
     <FormField
+      control={form.control}
       name="collegeName"
       render={({ field }) => (
         <FormItem>
@@ -227,7 +232,7 @@ const StudentFields = () => (
             <Input
               placeholder="University of Example"
               {...field}
-              value={field.value || ''}
+              value={field.value ?? ''}
             />
           </FormControl>
           <FormMessage />
@@ -235,6 +240,7 @@ const StudentFields = () => (
       )}
     />
     <FormField
+      control={form.control}
       name="branch"
       render={({ field }) => (
         <FormItem>
@@ -243,7 +249,7 @@ const StudentFields = () => (
             <Input
               placeholder="Computer Science"
               {...field}
-              value={field.value || ''}
+              value={field.value ?? ''}
             />
           </FormControl>
           <FormMessage />
@@ -251,6 +257,7 @@ const StudentFields = () => (
       )}
     />
     <FormField
+      control={form.control}
       name="graduationYear"
       render={({ field }) => (
         <FormItem>
@@ -260,21 +267,21 @@ const StudentFields = () => (
               type="number"
               placeholder="2025"
               {...field}
-              value={field.value || ''}
+              value={field.value ?? ''}
             />
           </FormControl>
           <FormMessage />
         </FormItem>
       )}
     />
-    <SharedFields />
+    <SharedFields form={form} />
   </div>
 );
 
-const GraduateFields = () => (
+const GraduateFields = ({form}: {form: any}) => (
   <div className="space-y-4">
     <FormField
-      control={useForm<JobSeekerFormValues>().control}
+      control={form.control}
       name="collegeName"
       render={({ field }) => (
         <FormItem>
@@ -283,7 +290,7 @@ const GraduateFields = () => (
             <Input
               placeholder="University of Example"
               {...field}
-              value={field.value || ''}
+              value={field.value ?? ''}
             />
           </FormControl>
           <FormMessage />
@@ -291,6 +298,7 @@ const GraduateFields = () => (
       )}
     />
     <FormField
+      control={form.control}
       name="graduationYear"
       render={({ field }) => (
         <FormItem>
@@ -300,21 +308,21 @@ const GraduateFields = () => (
               type="number"
               placeholder="2023"
               {...field}
-              value={field.value || ''}
+              value={field.value ?? ''}
             />
           </FormControl>
           <FormMessage />
         </FormItem>
       )}
     />
-    <SharedFields />
+    <SharedFields form={form} />
   </div>
 );
 
-const ExperiencedFields = () => (
+const ExperiencedFields = ({form}: {form: any}) => (
   <div className="space-y-4">
     <FormField
-      control={useForm<JobSeekerFormValues>().control}
+      control={form.control}
       name="currentCompany"
       render={({ field }) => (
         <FormItem>
@@ -323,7 +331,7 @@ const ExperiencedFields = () => (
             <Input
               placeholder="Acme Corp"
               {...field}
-              value={field.value || ''}
+              value={field.value ?? ''}
             />
           </FormControl>
           <FormMessage />
@@ -331,6 +339,7 @@ const ExperiencedFields = () => (
       )}
     />
     <FormField
+      control={form.control}
       name="currentJobTitle"
       render={({ field }) => (
         <FormItem>
@@ -339,7 +348,7 @@ const ExperiencedFields = () => (
             <Input
               placeholder="Software Engineer"
               {...field}
-              value={field.value || ''}
+              value={field.value ?? ''}
             />
           </FormControl>
           <FormMessage />
@@ -347,6 +356,7 @@ const ExperiencedFields = () => (
       )}
     />
     <FormField
+      control={form.control}
       name="experienceYears"
       render={({ field }) => (
         <FormItem>
@@ -369,6 +379,7 @@ const ExperiencedFields = () => (
       )}
     />
     <FormField
+      control={form.control}
       name="workEmail"
       render={({ field }) => (
         <FormItem>
@@ -377,21 +388,21 @@ const ExperiencedFields = () => (
             <Input
               placeholder="you@acme.com"
               {...field}
-              value={field.value || ''}
+              value={field.value ?? ''}
             />
           </FormControl>
           <FormMessage />
         </FormItem>
       )}
     />
-    <SharedFields />
+    <SharedFields form={form} />
   </div>
 );
 
-const SharedFields = () => (
+const SharedFields = ({form}: {form: any}) => (
   <>
     <FormField
-      control={useForm<JobSeekerFormValues>().control}
+      control={form.control}
       name="domain"
       render={({ field }) => (
         <FormItem>
@@ -400,7 +411,7 @@ const SharedFields = () => (
             <Input
               placeholder="e.g., IT, Electronics, Marketing"
               {...field}
-              value={field.value || ''}
+              value={field.value ?? ''}
             />
           </FormControl>
           <FormMessage />
@@ -408,6 +419,7 @@ const SharedFields = () => (
       )}
     />
     <FormField
+      control={form.control}
       name="skills"
       render={({ field }) => (
         <FormItem>
@@ -416,7 +428,7 @@ const SharedFields = () => (
             <Textarea
               placeholder="e.g., React, Node.js, Python"
               {...field}
-              value={field.value || ''}
+              value={field.value ?? ''}
             />
           </FormControl>
           <FormMessage />
@@ -424,6 +436,7 @@ const SharedFields = () => (
       )}
     />
     <FormField
+      control={form.control}
       name="preferredRoles"
       render={({ field }) => (
         <FormItem>
@@ -432,7 +445,7 @@ const SharedFields = () => (
             <Textarea
               placeholder="e.g., Frontend Developer, Data Scientist"
               {...field}
-              value={field.value || ''}
+              value={field.value ?? ''}
             />
           </FormControl>
           <FormMessage />
@@ -440,6 +453,7 @@ const SharedFields = () => (
       )}
     />
     <FormField
+      control={form.control}
       name="preferredLocations"
       render={({ field }) => (
         <FormItem>
@@ -448,7 +462,7 @@ const SharedFields = () => (
             <Textarea
               placeholder="e.g., Pune, Bangalore, Remote"
               {...field}
-              value={field.value || ''}
+              value={field.value ?? ''}
             />
           </FormControl>
           <FormMessage />
@@ -456,6 +470,7 @@ const SharedFields = () => (
       )}
     />
     <FormField
+      control={form.control}
       name="linkedinUrl"
       render={({ field }) => (
         <FormItem>
@@ -464,7 +479,7 @@ const SharedFields = () => (
             <Input
               placeholder="https://linkedin.com/in/yourprofile"
               {...field}
-              value={field.value || ''}
+              value={field.value ?? ''}
             />
           </FormControl>
           <FormMessage />
@@ -472,6 +487,7 @@ const SharedFields = () => (
       )}
     />
     <FormField
+      control={form.control}
       name="githubUrl"
       render={({ field }) => (
         <FormItem>
@@ -480,7 +496,7 @@ const SharedFields = () => (
             <Input
               placeholder="https://github.com/yourusername"
               {...field}
-              value={field.value || ''}
+              value={field.value ?? ''}
             />
           </FormControl>
           <FormMessage />
@@ -488,6 +504,7 @@ const SharedFields = () => (
       )}
     />
     <FormField
+      control={form.control}
       name="portfolioUrl"
       render={({ field }) => (
         <FormItem>
@@ -496,7 +513,7 @@ const SharedFields = () => (
             <Input
               placeholder="https://yourportfolio.com"
               {...field}
-              value={field.value || ''}
+              value={field.value ?? ''}
             />
           </FormControl>
           <FormMessage />
@@ -520,7 +537,29 @@ export function JobSeekerSignupForm() {
 
   const form = useForm<JobSeekerFormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: {},
+    defaultValues: {
+      fullName: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+      phone: '',
+      seekerType: undefined,
+      collegeEmail: '',
+      collegeName: '',
+      branch: '',
+      graduationYear: undefined,
+      domain: '',
+      skills: '',
+      preferredRoles: '',
+      preferredLocations: '',
+      linkedinUrl: '',
+      githubUrl: '',
+      currentCompany: '',
+      currentJobTitle: '',
+      experienceYears: '',
+      workEmail: '',
+      portfolioUrl: '',
+    },
   });
 
   const seekerType = useWatch({ control: form.control, name: 'seekerType' });
@@ -528,11 +567,11 @@ export function JobSeekerSignupForm() {
   const renderStep3 = () => {
     switch (seekerType) {
       case 'student':
-        return <StudentFields />;
+        return <StudentFields form={form} />;
       case 'graduate':
-        return <GraduateFields />;
+        return <GraduateFields form={form} />;
       case 'experienced':
-        return <ExperiencedFields />;
+        return <ExperiencedFields form={form} />;
       default:
         return null;
     }
@@ -635,7 +674,7 @@ export function JobSeekerSignupForm() {
       return renderStep3();
     }
     const StepComponent = steps[currentStep].component;
-    return StepComponent ? <StepComponent /> : null;
+    return StepComponent ? <StepComponent form={form}/> : null;
   };
 
   return (

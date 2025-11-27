@@ -26,7 +26,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, setDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
 import { useRouter } from 'next/navigation';
-import { Textarea } from '../ui/textarea';
 
 const passwordSchema = z
   .string()
@@ -80,10 +79,10 @@ const formSchema = z
 
 type RecruiterFormValues = z.infer<typeof formSchema>;
 
-const Step1 = () => (
+const Step1 = ({form}: {form: any}) => (
   <div className="space-y-4">
     <FormField
-      control={useForm<RecruiterFormValues>().control}
+      control={form.control}
       name="fullName"
       render={({ field }) => (
         <FormItem>
@@ -96,6 +95,7 @@ const Step1 = () => (
       )}
     />
     <FormField
+      control={form.control}
       name="workEmail"
       render={({ field }) => (
         <FormItem>
@@ -108,6 +108,7 @@ const Step1 = () => (
       )}
     />
     <FormField
+      control={form.control}
       name="password"
       render={({ field }) => (
         <FormItem>
@@ -120,6 +121,7 @@ const Step1 = () => (
       )}
     />
     <FormField
+      control={form.control}
       name="confirmPassword"
       render={({ field }) => (
         <FormItem>
@@ -132,12 +134,13 @@ const Step1 = () => (
       )}
     />
     <FormField
+      control={form.control}
       name="phone"
       render={({ field }) => (
         <FormItem>
           <FormLabel>Phone (Optional)</FormLabel>
           <FormControl>
-            <Input placeholder="+1 234 567 890" {...field} />
+            <Input placeholder="+1 234 567 890" {...field} value={field.value ?? ''}/>
           </FormControl>
           <FormMessage />
         </FormItem>
@@ -146,11 +149,11 @@ const Step1 = () => (
   </div>
 );
 
-const Step2 = () => (
+const Step2 = ({form}: {form: any}) => (
   <div className="space-y-4">
     <h3 className="text-lg font-medium">Your Profile</h3>
     <FormField
-      control={useForm<RecruiterFormValues>().control}
+      control={form.control}
       name="roleInCompany"
       render={({ field }) => (
         <FormItem>
@@ -163,12 +166,13 @@ const Step2 = () => (
       )}
     />
     <FormField
+      control={form.control}
       name="linkedinUrl"
       render={({ field }) => (
         <FormItem>
           <FormLabel>Your LinkedIn URL (Recommended)</FormLabel>
           <FormControl>
-            <Input placeholder="https://linkedin.com/in/yourprofile" {...field} />
+            <Input placeholder="https://linkedin.com/in/yourprofile" {...field} value={field.value ?? ''} />
           </FormControl>
           <FormMessage />
         </FormItem>
@@ -177,6 +181,7 @@ const Step2 = () => (
 
     <h3 className="text-lg font-medium pt-4">Company Information</h3>
     <FormField
+      control={form.control}
       name="companyName"
       render={({ field }) => (
         <FormItem>
@@ -189,6 +194,7 @@ const Step2 = () => (
       )}
     />
     <FormField
+      control={form.control}
       name="companyWebsite"
       render={({ field }) => (
         <FormItem>
@@ -201,6 +207,7 @@ const Step2 = () => (
       )}
     />
      <FormField
+      control={form.control}
       name="authorization"
       render={({ field }) => (
         <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
@@ -339,7 +346,7 @@ export function RecruiterSignupForm() {
 
   const renderCurrentStep = () => {
     const StepComponent = steps[currentStep].id === 'Step 1' ? Step1 : Step2;
-    return <StepComponent />;
+    return <StepComponent form={form} />;
   };
 
   return (
