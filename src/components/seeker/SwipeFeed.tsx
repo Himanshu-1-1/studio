@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { X, Heart, Undo } from 'lucide-react';
 import { AnimatePresence, motion, PanInfo } from 'framer-motion';
 import { HeartBalloonOverlay } from './HeartBalloonOverlay';
-import { useAuth, useFirestore, addDocumentNonBlocking } from '@/firebase';
+import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
 import { collection, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
@@ -20,7 +20,7 @@ export function SwipeFeed() {
   const [isSwiping, setIsSwiping] = useState(false);
   const [swipeDirection, setSwipeDirection] = useState<'like' | 'dislike' | null>(null);
   const [showHearts, setShowHearts] = useState(false);
-  const { user } = useAuth();
+  const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
 
@@ -28,26 +28,26 @@ export function SwipeFeed() {
   const activeJob = useMemo(() => jobs[activeIndex], [jobs, activeIndex]);
 
   const handleSwipeAction = useCallback((direction: 'like' | 'dislike') => {
-    if (!activeJob || isSwiping || !user) return;
+    if (!activeJob || isSwiping) return;
 
     setIsSwiping(true);
     setSwipeDirection(direction);
 
-    if (direction === 'like') {
+    if (direction === 'like' && user && firestore) {
       setShowHearts(true);
       setTimeout(() => setShowHearts(false), 1500);
 
-      const applicationData = {
+      const applicationData: Omit<Application, 'id'> = {
         candidateId: user.uid,
         jobId: activeJob.id,
         recruiterId: activeJob.postedBy,
         companyId: activeJob.companyId,
-        answers: [], // Will be filled in when screening questions are implemented
-        resumeUrl: '', // This should be retrieved from the user's profile
-        matchScore: Math.floor(Math.random() * 30) + 70, // Temporary random score
-        status: 'pending' as const,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
+        answers: [],
+        resumeUrl: '', 
+        matchScore: Math.floor(Math.random() * 30) + 70,
+        status: 'pending',
+        createdAt: serverTimestamp() as any,
+        updatedAt: serverTimestamp() as any,
       };
 
       const applicationsCollection = collection(firestore, 'applications');
@@ -64,7 +64,7 @@ export function SwipeFeed() {
         setJobs((prev) => prev.slice(0, prev.length - 1));
         setIsSwiping(false);
         setSwipeDirection(null);
-    }, 400); // Wait for exit animation to complete
+    }, 400);
 
   }, [activeJob, isSwiping, user, firestore, toast]);
 
