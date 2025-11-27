@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useAuth, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
-import type { Application, Job, JobSeekerProfile } from '@/lib/types';
+import { collection, query, where, Query } from 'firebase/firestore';
+import type { Application } from '@/lib/types';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -16,26 +17,39 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import {
   Table,
   TableBody,
-  TableCell,
   TableHead,
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
 import { ApplicantRow } from '@/components/recruiter/ApplicantRow';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Users } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
-export default function ApplicantsPage() {
+function ApplicantsContent() {
   const { user } = useAuth();
   const firestore = useFirestore();
+  const searchParams = useSearchParams();
+  const jobId = searchParams.get('jobId');
 
   const applicationsQuery = useMemoFirebase(() => {
     if (!user) return null;
-    // Query applications where the recruiter is the one who received it
-    return query(collection(firestore, 'applications'), where('recruiterId', '==', user.uid));
-  }, [firestore, user]);
+    
+    let q: Query<Application> = query(collection(firestore, 'applications'), where('recruiterId', '==', user.uid));
+    
+    if (jobId) {
+      q = query(q, where('jobId', '==', jobId));
+    }
+    
+    return q;
+  }, [firestore, user, jobId]);
 
-  const { data: applications, isLoading } = useCollection<Application>(applicationsQuery);
+  const { data: applications, isLoading } = useCollection<Application>(applicationsQuery as Query<Application> | null);
+
+  const cardTitle = jobId ? "Applicants for Selected Job" : "All Applicants";
+  const cardDescription = jobId 
+    ? "Review candidates who applied to this specific job."
+    : "Review and manage all candidates who have applied to your job postings.";
 
   return (
     <div className="space-y-6">
@@ -51,12 +65,16 @@ export default function ApplicantsPage() {
         </BreadcrumbList>
       </Breadcrumb>
 
+      {jobId && (
+        <Button variant="outline" asChild>
+          <Link href="/dashboard/recruiter/applicants">View All Applicants</Link>
+        </Button>
+      )}
+
       <Card>
         <CardHeader>
-          <CardTitle>All Applicants</CardTitle>
-          <CardDescription>
-            Review and manage all candidates who have applied to your job postings.
-          </CardDescription>
+          <CardTitle>{cardTitle}</CardTitle>
+          <CardDescription>{cardDescription}</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -71,7 +89,6 @@ export default function ApplicantsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {/* Render skeleton loaders */}
                 <ApplicantRow application={{} as Application} isLoading />
                 <ApplicantRow application={{} as Application} isLoading />
                 <ApplicantRow application={{} as Application} isLoading />
@@ -97,14 +114,24 @@ export default function ApplicantsPage() {
           ) : (
             <div className="text-center py-12">
               <Users className="mx-auto h-12 w-12 text-muted-foreground" />
-              <h3 className="mt-4 text-lg font-semibold">No applicants yet.</h3>
+              <h3 className="mt-4 text-lg font-semibold">No applicants found.</h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                When candidates apply to your jobs, they will appear here.
+                {jobId 
+                  ? "No one has applied to this job yet." 
+                  : "When candidates apply to your jobs, they will appear here."}
               </p>
             </div>
           )}
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function ApplicantsPage() {
+  return (
+    <Suspense fallback={<div>Loading applicants...</div>}>
+      <ApplicantsContent />
+    </Suspense>
   );
 }
