@@ -7,6 +7,7 @@ import type { Job } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { X, Heart, Undo } from 'lucide-react';
 import { AnimatePresence, motion, PanInfo } from 'framer-motion';
+import { GraffitiOverlay } from './GraffitiOverlay';
 
 const SWIPE_THRESHOLD = 50;
 
@@ -14,6 +15,9 @@ export function SwipeFeed() {
   const [jobs, setJobs] = useState<Job[]>(mockJobs);
   const [history, setHistory] = useState<{ job: Job, direction: 'like' | 'dislike' }[]>([]);
   const [isSwiping, setIsSwiping] = useState(false);
+  const [swipeDirection, setSwipeDirection] = useState<'like' | 'dislike' | null>(null);
+  const [showGraffiti, setShowGraffiti] = useState(false);
+
 
   const activeIndex = jobs.length - 1;
   const activeJob = useMemo(() => jobs[activeIndex], [jobs, activeIndex]);
@@ -22,18 +26,24 @@ export function SwipeFeed() {
     if (!activeJob || isSwiping) return;
 
     setIsSwiping(true);
-    setHistory((prev) => [...prev, { job: activeJob, direction }]);
-    setJobs((prev) => prev.slice(0, prev.length - 1));
+    setSwipeDirection(direction);
 
     // In a real app, you'd log this to Firestore here.
     console.log(`Swiped ${direction} on job: ${activeJob.id}`);
+    
     if (direction === 'like') {
+      setShowGraffiti(true);
+      setTimeout(() => setShowGraffiti(false), 1200);
       // TODO: Trigger screening questions modal here
       console.log('Triggering application flow...');
     }
 
-    // Reset swiping state after animation has had time to start
-    setTimeout(() => setIsSwiping(false), 500);
+    setTimeout(() => {
+        setHistory((prev) => [...prev, { job: activeJob, direction }]);
+        setJobs((prev) => prev.slice(0, prev.length - 1));
+        setIsSwiping(false);
+        setSwipeDirection(null);
+    }, 400); // Wait for exit animation to complete
 
   }, [activeJob, isSwiping]);
 
@@ -60,23 +70,24 @@ export function SwipeFeed() {
       opacity: 1, 
       transition: { type: 'spring', stiffness: 300, damping: 30, duration: 0.3 } 
     },
-    exit: (direction: 'like' | 'dislike') => ({
-      x: direction === 'like' ? 400 : -400,
+    exit: (customDirection: 'like' | 'dislike') => ({
+      x: customDirection === 'like' ? 400 : -400,
       opacity: 0,
-      rotate: direction === 'like' ? 20 : -20,
+      rotate: customDirection === 'like' ? 20 : -20,
       transition: { duration: 0.4, ease: 'easeIn' }
     }),
   };
 
   return (
     <div className="flex flex-col items-center justify-center w-full h-full p-4 gap-6">
+      {showGraffiti && <GraffitiOverlay />}
       <div className="relative w-full max-w-sm h-[500px] flex items-center justify-center">
         <div className="absolute w-full h-full rounded-2xl bg-secondary transform-gpu scale-95 top-2" />
         <AnimatePresence>
           {activeJob ? (
              <motion.div
                 key={activeJob.id}
-                custom={history.find(h => h.job.id === activeJob.id)?.direction}
+                custom={swipeDirection}
                 variants={variants}
                 initial="initial"
                 animate="animate"
@@ -126,7 +137,7 @@ export function SwipeFeed() {
           disabled={!activeJob || isSwiping}
           aria-label="I'm interested"
         >
-          <Heart className="h-10 w-10 text-green-500 fill-current" />
+          <Heart className="h-10 w-10 text-green-500" />
         </Button>
       </div>
     </div>
