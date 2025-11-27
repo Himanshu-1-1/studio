@@ -67,12 +67,12 @@ export function SwipeFeed() {
     setIsLoading(false);
 
   }, [user, fetchedJobs, appliedApplications, isLoadingJobs, isLoadingApplied]);
-
+  
   const activeJobs = useMemo(() => jobs.slice(currentIndex), [jobs, currentIndex]);
   const currentJob = activeJobs[activeJobs.length - 1];
 
   const handleSwipe = useCallback((job: Job, direction: SwipeDirection) => {
-    if (!job) return; // Prevent swipe if no job is active
+    if (!job) return; 
 
     setHistory((prev) => [...prev, { job, direction }]);
     setCurrentIndex((prev) => prev + 1);
