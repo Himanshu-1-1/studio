@@ -55,7 +55,7 @@ export function SwipeFeed() {
     const appliedJobIds = new Set(appliedApplications?.map(app => app.jobId) || []);
     let availableJobs = (fetchedJobs || []).filter(job => !appliedJobIds.has(job.id));
     
-    // If no jobs are fetched from Firestore, use mock jobs
+    // If no jobs are fetched from Firestore OR the fetched jobs list is empty, use mock jobs
     if (availableJobs.length === 0) {
       const availableMockJobs = mockJobs.filter(job => !appliedJobIds.has(job.id));
       setStack(availableMockJobs);
