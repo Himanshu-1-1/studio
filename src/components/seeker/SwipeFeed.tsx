@@ -7,7 +7,7 @@ import type { Job } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { X, Heart, Undo } from 'lucide-react';
 import { AnimatePresence, motion, PanInfo } from 'framer-motion';
-import { GraffitiOverlay } from './GraffitiOverlay';
+import { HeartBalloonOverlay } from './HeartBalloonOverlay';
 
 const SWIPE_THRESHOLD = 50;
 
@@ -16,7 +16,7 @@ export function SwipeFeed() {
   const [history, setHistory] = useState<{ job: Job, direction: 'like' | 'dislike' }[]>([]);
   const [isSwiping, setIsSwiping] = useState(false);
   const [swipeDirection, setSwipeDirection] = useState<'like' | 'dislike' | null>(null);
-  const [showGraffiti, setShowGraffiti] = useState(false);
+  const [showHearts, setShowHearts] = useState(false);
 
 
   const activeIndex = jobs.length - 1;
@@ -32,8 +32,8 @@ export function SwipeFeed() {
     console.log(`Swiped ${direction} on job: ${activeJob.id}`);
     
     if (direction === 'like') {
-      setShowGraffiti(true);
-      setTimeout(() => setShowGraffiti(false), 1200);
+      setShowHearts(true);
+      setTimeout(() => setShowHearts(false), 1500);
       // TODO: Trigger screening questions modal here
       console.log('Triggering application flow...');
     }
@@ -80,7 +80,7 @@ export function SwipeFeed() {
 
   return (
     <div className="flex flex-col items-center justify-center w-full h-full p-4 gap-6">
-      {showGraffiti && <GraffitiOverlay />}
+      {showHearts && <HeartBalloonOverlay />}
       <div className="relative w-full max-w-sm h-[500px] flex items-center justify-center">
         <div className="absolute w-full h-full rounded-2xl bg-secondary transform-gpu scale-95 top-2" />
         <AnimatePresence>
@@ -101,8 +101,8 @@ export function SwipeFeed() {
               </motion.div>
           ) : (
             <div className="text-center p-8 bg-card rounded-2xl shadow-md w-full">
-                <h3 className="text-xl font-bold font-headline">You're all caught up!</h3>
-                <p className="text-muted-foreground mt-2">New jobs will appear here when they match your profile.</p>
+                <h3 className="text-xl font-semibold font-headline text-slate-700">That’s all for your profile for now.</h3>
+                <p className="text-muted-foreground mt-2 text-sm">New opportunities will appear as soon as they match your profile.</p>
             </div>
           )}
         </AnimatePresence>
