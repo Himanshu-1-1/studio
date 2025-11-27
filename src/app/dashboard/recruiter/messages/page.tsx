@@ -8,9 +8,10 @@ import { Search, Send, MessageSquare, Briefcase } from "lucide-react";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { useAuth, useCollection, useDoc, useFirestore, useMemoFirebase } from "@/firebase";
 import { collection, query, where, orderBy, doc, addDoc, serverTimestamp, updateDoc, getDocs } from "firebase/firestore";
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Conversation, Message, JobSeekerProfile, Job } from "@/lib/types";
+import { useSearchParams } from "next/navigation";
 
 const ConversationListItem = ({ conv, selfId, isSelected, onSelect }: { conv: Conversation, selfId: string, isSelected: boolean, onSelect: () => void }) => {
     const firestore = useFirestore();
@@ -162,9 +163,10 @@ const ChatArea = ({ conversation }: { conversation: Conversation | null }) => {
     )
 }
 
-export default function RecruiterMessagesPage() {
+function RecruiterMessagesContent() {
   const { user } = useAuth();
   const firestore = useFirestore();
+  const searchParams = useSearchParams();
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
 
   const conversationsQuery = useMemoFirebase(() => {
@@ -177,6 +179,19 @@ export default function RecruiterMessagesPage() {
   }, [user, firestore]);
   
   const { data: conversations, isLoading } = useCollection<Conversation>(conversationsQuery);
+
+  useEffect(() => {
+    const conversationId = searchParams.get('conversationId');
+    if (conversationId && conversations) {
+      const conv = conversations.find(c => c.id === conversationId);
+      if (conv) {
+        setSelectedConversation(conv);
+      }
+    } else if (conversations && conversations.length > 0 && !selectedConversation) {
+        // Default to first conversation if none is selected via URL
+        setSelectedConversation(conversations[0]);
+    }
+  }, [searchParams, conversations, selectedConversation]);
 
   return (
     <div className="space-y-6 h-full flex flex-col">
@@ -233,4 +248,12 @@ export default function RecruiterMessagesPage() {
         </div>
     </div>
   );
+}
+
+export default function RecruiterMessagesPage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <RecruiterMessagesContent />
+        </Suspense>
+    )
 }

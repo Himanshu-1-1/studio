@@ -1,8 +1,8 @@
 'use client';
 
-import { useDoc, useFirestore, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
-import type { Application, Job, JobSeekerProfile } from '@/lib/types';
-import { doc } from 'firebase/firestore';
+import { useDoc, useFirestore, useMemoFirebase, updateDocumentNonBlocking, useUser } from '@/firebase';
+import type { Application, Job, JobSeekerProfile, Conversation } from '@/lib/types';
+import { doc, collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
@@ -16,6 +16,7 @@ import {
 } from '../ui/dropdown-menu';
 import { MoreHorizontal } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 
 const statusVariant = {
   pending: 'secondary',
@@ -30,6 +31,8 @@ interface ApplicantRowProps {
 
 export function ApplicantRow({ application, isLoading }: ApplicantRowProps) {
   const firestore = useFirestore();
+  const { user: recruiter } = useUser();
+  const router = useRouter();
   const { toast } = useToast();
 
   const { data: job, isLoading: isJobLoading } = useDoc<Job>(
@@ -56,6 +59,58 @@ export function ApplicantRow({ application, isLoading }: ApplicantRowProps) {
         description: `${candidate?.fullName}'s application for ${job?.title} has been updated.`,
     });
   };
+
+  const handleMessageCandidate = async () => {
+    if (!recruiter || !candidate || !job) {
+      toast({ variant: "destructive", title: "Could not start conversation", description: "Missing required information." });
+      return;
+    }
+
+    try {
+      const conversationsRef = collection(firestore, 'conversations');
+      const q = query(
+        conversationsRef,
+        where('jobId', '==', job.id),
+        where('participants', 'array-contains', recruiter.uid)
+      );
+
+      const querySnapshot = await getDocs(q);
+      let existingConversation: WithId<Conversation> | null = null;
+
+      querySnapshot.forEach((doc) => {
+        const conv = doc.data() as Conversation;
+        if (conv.participants.includes(candidate.userId)) {
+            existingConversation = { id: doc.id, ...conv };
+        }
+      });
+      
+      let conversationId: string;
+
+      if (existingConversation) {
+        conversationId = existingConversation.id;
+      } else {
+        const newConversationData = {
+          participants: [recruiter.uid, candidate.userId],
+          jobId: job.id,
+          createdAt: serverTimestamp(),
+          lastMessageAt: serverTimestamp(),
+          status: 'active',
+          lastMessageText: `Chat started for ${job.title}`,
+        };
+        const newConvDoc = await addDoc(conversationsRef, newConversationData);
+        conversationId = newConvDoc.id;
+      }
+      
+      // Navigate to the messages page, passing the conversationId to open it.
+      // This part assumes the messages page can handle such a parameter.
+      router.push(`/dashboard/recruiter/messages?conversationId=${conversationId}`);
+
+    } catch (error) {
+      console.error("Error starting conversation:", error);
+      toast({ variant: "destructive", title: "Error", description: "Could not start a conversation. Please try again." });
+    }
+  };
+
 
   if (isLoading || isJobLoading || isCandidateLoading) {
     return (
@@ -132,7 +187,7 @@ export function ApplicantRow({ application, isLoading }: ApplicantRowProps) {
           </DropdownMenuTrigger>
           <DropdownMenuContent>
             <DropdownMenuItem>View Profile</DropdownMenuItem>
-            <DropdownMenuItem>Message Candidate</DropdownMenuItem>
+            <DropdownMenuItem onClick={handleMessageCandidate}>Message Candidate</DropdownMenuItem>
             {application.status !== 'accepted' && (
                 <DropdownMenuItem onClick={() => handleStatusChange('accepted')} className="text-green-600 focus:text-green-700">
                     Accept
@@ -149,3 +204,5 @@ export function ApplicantRow({ application, isLoading }: ApplicantRowProps) {
     </TableRow>
   );
 }
+
+type WithId<T> = T & { id: string };
