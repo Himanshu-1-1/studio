@@ -1,28 +1,46 @@
 'use client';
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { JobCard } from './JobCard';
-import { mockJobs } from '@/lib/data';
 import type { Job, Application } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { X, Heart, Undo } from 'lucide-react';
 import { AnimatePresence, motion, PanInfo } from 'framer-motion';
 import { HeartBalloonOverlay } from './HeartBalloonOverlay';
-import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
-import { collection, serverTimestamp } from 'firebase/firestore';
+import { useUser, useFirestore, addDocumentNonBlocking, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from '../ui/skeleton';
 
 const SWIPE_THRESHOLD = 50;
 
 export function SwipeFeed() {
-  const [jobs, setJobs] = useState<Job[]>(mockJobs);
+  const { user } = useUser();
+  const firestore = useFirestore();
+  const { toast } = useToast();
+
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [history, setHistory] = useState<{ job: Job, direction: 'like' | 'dislike' }[]>([]);
   const [isSwiping, setIsSwiping] = useState(false);
   const [swipeDirection, setSwipeDirection] = useState<'like' | 'dislike' | null>(null);
   const [showHearts, setShowHearts] = useState(false);
-  const { user } = useUser();
-  const firestore = useFirestore();
-  const { toast } = useToast();
+
+  const jobsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    // For now, let's fetch all active jobs. A real-world app would have more complex filtering.
+    return query(collection(firestore, 'jobs'), where('isActive', '==', true));
+  }, [firestore]);
+
+  const { data: fetchedJobs, isLoading: isLoadingJobs } = useCollection<Job>(jobsQuery);
+
+  useEffect(() => {
+    if (fetchedJobs) {
+      setJobs(fetchedJobs);
+      setIsLoading(false);
+    }
+  }, [fetchedJobs]);
+
 
   const activeIndex = jobs.length - 1;
   const activeJob = useMemo(() => jobs[activeIndex], [jobs, activeIndex]);
@@ -35,7 +53,7 @@ export function SwipeFeed() {
 
     if (direction === 'like' && user && firestore) {
       setShowHearts(true);
-      setTimeout(() => setShowHearts(false), 1500);
+      setTimeout(() => setShowHearts(false), 2000);
 
       const applicationData: Omit<Application, 'id'> = {
         candidateId: user.uid,
@@ -43,8 +61,8 @@ export function SwipeFeed() {
         recruiterId: activeJob.postedBy,
         companyId: activeJob.companyId,
         answers: [],
-        resumeUrl: '', 
-        matchScore: Math.floor(Math.random() * 30) + 70,
+        resumeUrl: '', // This would be populated from the user's profile
+        matchScore: Math.floor(Math.random() * 30) + 70, // Use the same logic as JobCard for now
         status: 'pending',
         createdAt: serverTimestamp() as any,
         updatedAt: serverTimestamp() as any,
@@ -98,6 +116,21 @@ export function SwipeFeed() {
       transition: { duration: 0.4, ease: 'easeIn' }
     }),
   };
+  
+  if (isLoading || isLoadingJobs) {
+      return (
+          <div className="flex flex-col items-center justify-center w-full h-full p-4 gap-6">
+              <div className="relative w-full max-w-sm h-[500px] flex items-center justify-center">
+                  <Skeleton className="w-full h-full rounded-2xl" />
+              </div>
+              <div className="flex items-center gap-4">
+                  <Skeleton className="w-16 h-16 rounded-full" />
+                  <Skeleton className="w-20 h-20 rounded-full" />
+                  <Skeleton className="w-20 h-20 rounded-full" />
+              </div>
+          </div>
+      );
+  }
 
   return (
     <div className="flex flex-col items-center justify-center w-full h-full p-4 gap-6">
@@ -124,7 +157,7 @@ export function SwipeFeed() {
             </>
           ) : (
             <div className="text-center p-8 bg-card rounded-2xl shadow-md w-full">
-                <h3 className="text-xl font-semibold font-headline text-slate-700">That’s all for your profile for now.</h3>
+                <h3 className="text-xl font-semibold font-headline text-slate-700">That’s all for now!</h3>
                 <p className="text-muted-foreground mt-2 text-sm">New opportunities will appear as soon as they match your profile.</p>
             </div>
           )}
