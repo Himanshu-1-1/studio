@@ -1,6 +1,6 @@
 import { SwipeFeed } from "@/components/seeker/SwipeFeed";
 
-export default function SeekerDashboardPage() {
+export default function FindJobsPage() {
   return (
     <div className="h-full w-full flex flex-col">
       <div className="text-center mb-4">

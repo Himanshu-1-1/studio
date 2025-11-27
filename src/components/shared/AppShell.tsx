@@ -26,12 +26,14 @@ import {
   Users,
   ShieldCheck,
 } from 'lucide-react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Logo } from '@/components/icons/Logo';
 import type { UserRole } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { Button } from '../ui/button';
 import Link from 'next/link';
+import { useAuth, useUser } from '@/firebase';
+import { signOut } from 'firebase/auth';
+import { useToast } from '@/hooks/use-toast';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -39,10 +41,10 @@ interface AppShellProps {
 }
 
 const seekerNav = [
-  { href: '/dashboard/seeker', icon: Search, label: 'Find Jobs', tooltip: 'Find Jobs' },
-  { href: '/dashboard/seeker/applications', icon: FileText, label: 'Applications', tooltip: 'My Applications' },
-  { href: '/dashboard/seeker/messages', icon: MessageSquare, label: 'Messages', tooltip: 'Messages' },
-  { href: '/dashboard/seeker/profile', icon: User, label: 'Profile', tooltip: 'My Profile' },
+  { href: '/dashboard/find-jobs', icon: Search, label: 'Find Jobs', tooltip: 'Find Jobs' },
+  { href: '/dashboard/applications', icon: FileText, label: 'Applications', tooltip: 'My Applications' },
+  { href: '/dashboard/messages', icon: MessageSquare, label: 'Messages', tooltip: 'Messages' },
+  { href: '/dashboard/profile', icon: User, label: 'Profile', tooltip: 'My Profile' },
 ];
 
 const recruiterNav = [
@@ -62,6 +64,10 @@ const adminNav = [
 
 export function AppShell({ children, userRole }: AppShellProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { toast } = useToast();
+  const auth = useAuth();
+  const { user } = useUser();
   const [navItems, setNavItems] = React.useState(seekerNav);
 
   React.useEffect(() => {
@@ -78,9 +84,20 @@ export function AppShell({ children, userRole }: AppShellProps) {
         setNavItems(adminNav);
         break;
       default:
-        setNavItems([]);
+        setNavItems(seekerNav); // Default to seeker if role is unknown
     }
   }, [userRole]);
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      toast({ title: 'Logged out successfully.' });
+      router.push('/');
+    } catch (error) {
+      console.error("Logout Error:", error);
+      toast({ variant: 'destructive', title: 'Failed to log out.' });
+    }
+  };
 
   return (
     <SidebarProvider>
@@ -94,7 +111,7 @@ export function AppShell({ children, userRole }: AppShellProps) {
               <SidebarMenuItem key={item.href}>
                 <Link href={item.href}>
                   <SidebarMenuButton
-                    isActive={pathname === item.href}
+                    isActive={pathname.startsWith(item.href)}
                     tooltip={{ children: item.tooltip }}
                   >
                     <item.icon />
@@ -114,12 +131,10 @@ export function AppShell({ children, userRole }: AppShellProps) {
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-               <Link href="/">
-                <SidebarMenuButton tooltip={{ children: 'Logout' }}>
+                <SidebarMenuButton onClick={handleLogout} tooltip={{ children: 'Logout' }}>
                     <LogOut />
                     <span>Logout</span>
                 </SidebarMenuButton>
-              </Link>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarFooter>
@@ -132,9 +147,9 @@ export function AppShell({ children, userRole }: AppShellProps) {
             <div className="flex-1">
                 {/* Potentially add breadcrumbs or page title here */}
             </div>
-            <Avatar>
-                <AvatarImage src="https://github.com/shadcn.png" alt="@shadcn" />
-                <AvatarFallback>U</AvatarFallback>
+             <Avatar>
+                <AvatarImage src={user?.photoURL || "https://github.com/shadcn.png"} alt="@shadcn" />
+                <AvatarFallback>{user?.displayName?.charAt(0) || 'U'}</AvatarFallback>
             </Avatar>
         </header>
         <main className="flex-1 p-4 md:p-6">{children}</main>

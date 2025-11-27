@@ -123,8 +123,11 @@ export default function NewJobPage() {
     };
 
     try {
+      if (!firestore) {
+        throw new Error("Firestore is not initialized");
+      }
       const jobsCollectionRef = collection(firestore, 'jobs');
-      await addDocumentNonBlocking(jobsCollectionRef, jobData);
+      await addDoc(jobsCollectionRef, jobData);
       
       toast({
         title: 'Job Posted Successfully!',
@@ -377,7 +380,7 @@ export default function NewJobPage() {
                         <FormItem>
                         <FormLabel>Question 1</FormLabel>
                         <FormControl>
-                            <Input placeholder="e.g., Have you built any projects using React?" {...field} />
+                            <Input placeholder="e.g., Have you built any projects using React?" {...field} value={field.value ?? ''} />
                         </FormControl>
                         </FormItem>
                     )}
@@ -389,7 +392,7 @@ export default function NewJobPage() {
                         <FormItem>
                         <FormLabel>Question 2</FormLabel>
                         <FormControl>
-                            <Input {...field} />
+                            <Input {...field} value={field.value ?? ''} />
                         </FormControl>
                         </FormItem>
                     )}
@@ -401,7 +404,7 @@ export default function NewJobPage() {
                         <FormItem>
                         <FormLabel>Question 3</FormLabel>
                         <FormControl>
-                            <Input {...field} />
+                            <Input {...field} value={field.value ?? ''} />
                         </FormControl>
                         </FormItem>
                     )}
@@ -425,5 +428,3 @@ export default function NewJobPage() {
     </div>
   );
 }
-
-    

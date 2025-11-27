@@ -2,27 +2,39 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useUser } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function Dashboard() {
   const router = useRouter();
+  const { user, isUserLoading } = useUser();
 
   useEffect(() => {
-    // In a real app, you would get user role from context/session
-    const userRole = 'student'; // Mock role
+    if (isUserLoading) return; // Wait until user object is resolved
+    
+    if (!user) {
+        router.replace('/login');
+        return;
+    }
+
+    // In a real app, you would get user role from context/session/firestore
+    const userRole = user?.role || 'student'; // Mock role, replace with dynamic role from user object later
 
     if (userRole === 'student' || userRole === 'graduate' || userRole === 'experienced') {
-      router.replace('/dashboard/seeker');
+      router.replace('/dashboard/find-jobs');
     } else if (userRole === 'recruiter') {
       router.replace('/dashboard/recruiter');
     } else if (userRole === 'admin') {
-      router.replace('/dashboard/admin');
+      // router.replace('/dashboard/admin');
+      // For now, redirect admin to find-jobs as admin dashboard is not built
+       router.replace('/dashboard/find-jobs');
     } else {
-        // Handle unknown role or redirect to login
+        // Handle unknown role or redirect to login if not authenticated
         router.replace('/login');
     }
-  }, [router]);
+  }, [router, user, isUserLoading]);
 
+  // Display a loading skeleton while redirecting
   return (
     <div className="space-y-4">
       <Skeleton className="h-12 w-1/4" />
