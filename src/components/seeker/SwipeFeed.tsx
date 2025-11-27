@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
@@ -8,7 +9,7 @@ import { X, Heart, Undo } from 'lucide-react';
 import { AnimatePresence, motion, PanInfo } from 'framer-motion';
 import { HeartBalloonOverlay } from './HeartBalloonOverlay';
 import { useUser, useFirestore, addDocumentNonBlocking, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, serverTimestamp, query, where } from 'firebase/firestore';
+import { collection, serverTimestamp, query, where, addDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '../ui/skeleton';
 
@@ -27,9 +28,10 @@ export function SwipeFeed() {
   const [showHearts, setShowHearts] = useState(false);
 
   const jobsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    // IMPORTANT: Only run the query if the user is logged in
+    if (!firestore || !user) return null;
     return query(collection(firestore, 'jobs'), where('isActive', '==', true));
-  }, [firestore]);
+  }, [firestore, user]);
 
   const { data: fetchedJobs, isLoading: isLoadingJobs } = useCollection<Job>(jobsQuery);
 
@@ -42,6 +44,13 @@ export function SwipeFeed() {
 
 
   useEffect(() => {
+    // If there's no user, we are done loading.
+    if (!user) {
+        setIsLoading(false);
+        setJobs([]);
+        return;
+    }
+
     if (fetchedJobs && appliedApplications) {
       const appliedJobIds = new Set(appliedApplications.map(app => app.jobId));
       const filteredJobs = fetchedJobs.filter(job => !appliedJobIds.has(job.id));
@@ -52,7 +61,7 @@ export function SwipeFeed() {
       setJobs(fetchedJobs || []);
       setIsLoading(false);
     }
-  }, [fetchedJobs, appliedApplications, isLoadingJobs, isLoadingApplied]);
+  }, [user, fetchedJobs, appliedApplications, isLoadingJobs, isLoadingApplied]);
 
 
   const activeIndex = jobs.length - 1;
@@ -68,7 +77,7 @@ export function SwipeFeed() {
       setShowHearts(true);
       setTimeout(() => setShowHearts(false), 2000);
 
-      const applicationData: Omit<Application, 'id'> = {
+      const applicationData = {
         candidateId: user.uid,
         jobId: activeJob.id,
         recruiterId: activeJob.postedBy,
@@ -77,16 +86,16 @@ export function SwipeFeed() {
         resumeUrl: '', // This would be populated from the user's profile
         matchScore: Math.floor(Math.random() * 30) + 70, // Use the same logic as JobCard for now
         status: 'pending',
-        createdAt: serverTimestamp() as any,
-        updatedAt: serverTimestamp() as any,
-      };
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      } as Omit<Application, 'id'>;
 
       const applicationsCollection = collection(firestore, 'applications');
-      addDocumentNonBlocking(applicationsCollection, applicationData);
-
-      toast({
-        title: "Application Sent!",
-        description: `You've applied for the ${activeJob.title} position.`,
+      addDoc(applicationsCollection, applicationData).then(() => {
+         toast({
+            title: "Application Sent!",
+            description: `You've applied for the ${activeJob.title} position.`,
+        });
       });
     }
     
