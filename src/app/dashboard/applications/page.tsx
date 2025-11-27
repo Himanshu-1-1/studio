@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { FileSearch } from "lucide-react";
-import { useAuth, useCollection, useDoc, useFirestore, useMemoFirebase } from "@/firebase";
+import { useUser, useCollection, useDoc, useFirestore, useMemoFirebase } from "@/firebase";
 import type { Application, Job, Company } from "@/lib/types";
 import { collection, query, where, doc } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -61,7 +61,7 @@ const ApplicationRow = ({ application }: { application: Application }) => {
 };
 
 export default function ApplicationsPage() {
-    const { user } = useAuth();
+    const { user } = useUser(); // Correctly use useUser hook
     const firestore = useFirestore();
 
     const applicationsQuery = useMemoFirebase(() => {
