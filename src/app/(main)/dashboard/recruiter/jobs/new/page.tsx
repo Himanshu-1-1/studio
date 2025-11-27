@@ -68,6 +68,8 @@ export default function NewJobPage() {
       city: '',
       remoteAllowed: false,
       currency: 'INR',
+      minSalary: undefined,
+      maxSalary: undefined,
       description: '',
       requiredSkills: [],
       screeningQuestion1: '',
@@ -309,7 +311,7 @@ export default function NewJobPage() {
                             <FormItem>
                             <FormLabel>Min Salary (Optional)</FormLabel>
                             <FormControl>
-                                <Input type="number" placeholder="e.g., 800000" {...field} />
+                                <Input type="number" placeholder="e.g., 800000" {...field} value={field.value ?? ''} />
                             </FormControl>
                             <FormMessage />
                             </FormItem>
@@ -322,7 +324,7 @@ export default function NewJobPage() {
                             <FormItem>
                             <FormLabel>Max Salary (Optional)</FormLabel>
                             <FormControl>
-                                <Input type="number" placeholder="e.g., 1200000" {...field} />
+                                <Input type="number" placeholder="e.g., 1200000" {...field} value={field.value ?? ''} />
                             </FormControl>
                             <FormMessage />
                             </FormItem>
@@ -423,3 +425,5 @@ export default function NewJobPage() {
     </div>
   );
 }
+
+    
