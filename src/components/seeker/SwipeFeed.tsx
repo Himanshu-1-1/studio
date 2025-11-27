@@ -3,11 +3,14 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { JobCard } from './JobCard';
 import { mockJobs } from '@/lib/data';
-import type { Job } from '@/lib/types';
+import type { Job, Application } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { X, Heart, Undo } from 'lucide-react';
 import { AnimatePresence, motion, PanInfo } from 'framer-motion';
 import { HeartBalloonOverlay } from './HeartBalloonOverlay';
+import { useAuth, useFirestore, addDocumentNonBlocking } from '@/firebase';
+import { collection, serverTimestamp } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
 
 const SWIPE_THRESHOLD = 50;
 
@@ -17,25 +20,43 @@ export function SwipeFeed() {
   const [isSwiping, setIsSwiping] = useState(false);
   const [swipeDirection, setSwipeDirection] = useState<'like' | 'dislike' | null>(null);
   const [showHearts, setShowHearts] = useState(false);
-
+  const { user } = useAuth();
+  const firestore = useFirestore();
+  const { toast } = useToast();
 
   const activeIndex = jobs.length - 1;
   const activeJob = useMemo(() => jobs[activeIndex], [jobs, activeIndex]);
 
   const handleSwipeAction = useCallback((direction: 'like' | 'dislike') => {
-    if (!activeJob || isSwiping) return;
+    if (!activeJob || isSwiping || !user) return;
 
     setIsSwiping(true);
     setSwipeDirection(direction);
 
-    // In a real app, you'd log this to Firestore here.
-    console.log(`Swiped ${direction} on job: ${activeJob.id}`);
-    
     if (direction === 'like') {
       setShowHearts(true);
       setTimeout(() => setShowHearts(false), 1500);
-      // TODO: Trigger screening questions modal here
-      console.log('Triggering application flow...');
+
+      const applicationData = {
+        candidateId: user.uid,
+        jobId: activeJob.id,
+        recruiterId: activeJob.postedBy,
+        companyId: activeJob.companyId,
+        answers: [], // Will be filled in when screening questions are implemented
+        resumeUrl: '', // This should be retrieved from the user's profile
+        matchScore: Math.floor(Math.random() * 30) + 70, // Temporary random score
+        status: 'pending' as const,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
+
+      const applicationsCollection = collection(firestore, 'applications');
+      addDocumentNonBlocking(applicationsCollection, applicationData);
+
+      toast({
+        title: "Application Sent!",
+        description: `You've applied for the ${activeJob.title} position.`,
+      });
     }
 
     setTimeout(() => {
@@ -45,7 +66,7 @@ export function SwipeFeed() {
         setSwipeDirection(null);
     }, 400); // Wait for exit animation to complete
 
-  }, [activeJob, isSwiping]);
+  }, [activeJob, isSwiping, user, firestore, toast]);
 
   const handleUndo = () => {
     if (history.length > 0) {
