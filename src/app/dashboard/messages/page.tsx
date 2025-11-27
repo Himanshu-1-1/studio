@@ -5,8 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Search, Send, MessageSquare, Briefcase } from "lucide-react";
-import { useAuth, useCollection, useFirestore, useMemoFirebase } from "@/firebase";
-import { collection, query, where, orderBy, addDoc, serverTimestamp } from "firebase/firestore";
+import { useAuth, useCollection, useDoc, useFirestore, useMemoFirebase } from "@/firebase";
+import { collection, query, where, orderBy, addDoc, serverTimestamp, updateDoc, doc, getDocs } from "firebase/firestore";
 import { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Conversation, Message, RecruiterProfile, Job } from "@/lib/types";
@@ -37,6 +37,8 @@ const ConversationListItem = ({ conv, selfId, isSelected, onSelect }: { conv: Co
     
     const recruiterProfileRef = useMemoFirebase(() => {
         if (!otherParticipantId) return null;
+        // This is simplified, assuming job seeker is chatting with recruiter.
+        // A real app would need to determine the collection based on role.
         return doc(firestore, 'recruiterProfiles', otherParticipantId);
     }, [firestore, otherParticipantId]);
 
