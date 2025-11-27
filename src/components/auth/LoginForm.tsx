@@ -15,9 +15,9 @@ import {
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useAuth, useFirestore } from '@/firebase';
+import { useFirestore, initializeFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 
 const formSchema = z.object({
@@ -27,7 +27,6 @@ const formSchema = z.object({
 
 export function LoginForm() {
   const router = useRouter();
-  const auth = useAuth();
   const firestore = useFirestore();
   const { toast } = useToast();
 
@@ -41,6 +40,7 @@ export function LoginForm() {
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
+      const { auth } = initializeFirebase();
       const userCredential = await signInWithEmailAndPassword(
         auth,
         values.email,
@@ -65,7 +65,6 @@ export function LoginForm() {
           title: 'Profile not found',
           description: "We couldn't find a user profile. Please sign up.",
         });
-        // Optional: sign out the user if their profile is missing
         await auth.signOut();
         router.push('/signup');
         return;
@@ -74,7 +73,6 @@ export function LoginForm() {
       const userData = userDocSnap.data();
       const role = userData.role;
 
-      // Role-based redirection
       if (
         role === 'student' ||
         role === 'graduate' ||
@@ -84,10 +82,8 @@ export function LoginForm() {
       } else if (role === 'recruiter') {
         router.push('/dashboard/recruiter');
       } else if (role === 'admin') {
-        // For now, admins can go to the seeker dashboard
         router.push('/dashboard/find-jobs');
       } else {
-        // Fallback for unknown roles
         toast({
           title: 'Welcome!',
           description: 'Redirecting to your dashboard...',
