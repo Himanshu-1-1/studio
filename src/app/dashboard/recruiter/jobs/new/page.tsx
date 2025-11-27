@@ -23,9 +23,9 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { addDocumentNonBlocking, useAuth, useFirestore } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase';
 import { useRouter } from 'next/navigation';
-import { serverTimestamp, collection } from 'firebase/firestore';
+import { serverTimestamp, collection, addDoc } from 'firebase/firestore';
 import { JobPreviewCard } from '@/components/recruiter/JobPreviewCard';
 import { SkillsInput } from '@/components/recruiter/SkillsInput';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -52,7 +52,7 @@ const jobFormSchema = z.object({
 type JobFormValues = z.infer<typeof jobFormSchema>;
 
 export default function NewJobPage() {
-  const { user } = useAuth();
+  const { user } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
@@ -428,3 +428,5 @@ export default function NewJobPage() {
     </div>
   );
 }
+
+    
