@@ -55,15 +55,14 @@ export function SwipeFeed() {
     }
 
     let availableJobs: Job[] = [];
+    const appliedJobIds = new Set(appliedApplications?.map(app => app.jobId) || []);
 
     if (fetchedJobs) {
-      const appliedJobIds = new Set(appliedApplications?.map(app => app.jobId) || []);
       availableJobs = fetchedJobs.filter(job => !appliedJobIds.has(job.id));
     }
 
     // If after fetching and filtering, there are no jobs from Firestore, use mock data.
     if (availableJobs.length === 0) {
-      const appliedJobIds = new Set(appliedApplications?.map(app => app.jobId) || []);
       const availableMockJobs = mockJobs.filter(job => !appliedJobIds.has(job.id));
       setJobs(availableMockJobs);
     } else {
@@ -84,21 +83,20 @@ export function SwipeFeed() {
     setIsSwiping(true);
     setSwipeDirection(direction);
 
-    // Check if the job is from Firestore before attempting to write
-    const isFirestoreJob = fetchedJobs?.some(job => job.id === activeJob.id);
-
-    if (direction === 'like' && user && firestore && isFirestoreJob) {
+    if (direction === 'like' && user && firestore) {
         setShowHearts(true);
         setTimeout(() => setShowHearts(false), 2000);
 
         const applicationData = {
           candidateId: user.uid,
           jobId: activeJob.id,
-          recruiterId: activeJob.postedBy,
+          jobTitle: activeJob.title, // Denormalize for mock data display
           companyId: activeJob.companyId,
-          answers: [], // Correctly an empty array for now
-          resumeUrl: '', // This would be populated from the user's profile
-          matchScore: Math.floor(Math.random() * 30) + 70, // Use the same logic as JobCard for now
+          companyName: activeJob.companyName, // Denormalize
+          recruiterId: activeJob.postedBy,
+          answers: [],
+          resumeUrl: '',
+          matchScore: Math.floor(Math.random() * 30) + 70,
           status: 'pending',
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
@@ -111,12 +109,6 @@ export function SwipeFeed() {
               description: `You've applied for the ${activeJob.title} position.`,
           });
         });
-    } else if (direction === 'like' && !isFirestoreJob) {
-        // This handles liking a mock job
-        toast({
-            title: "Liked!",
-            description: `You liked the ${activeJob.title} position. (This is a demo action)`,
-        });
     }
     
     // This timeout ensures the exit animation completes before the state updates
@@ -127,7 +119,7 @@ export function SwipeFeed() {
         setSwipeDirection(null);
     }, 400);
 
-  }, [activeJob, isSwiping, user, firestore, toast, fetchedJobs]);
+  }, [activeJob, isSwiping, user, firestore, toast]);
 
   const handleUndo = () => {
     if (history.length > 0) {

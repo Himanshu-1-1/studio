@@ -40,17 +40,21 @@ const ApplicationRow = ({ application }: { application: Application }) => {
             </TableRow>
         );
     }
+    
+    // Fallback to application data if job/company documents are not found (e.g., for mock data)
+    const jobTitle = job?.title || application.jobTitle;
+    const companyName = company?.name || application.companyName;
 
-    if (!job || !company) {
-        // This can happen if a related job or company is deleted.
+    if (!jobTitle || !companyName) {
+        // Don't render if we can't even get basic info
         return null;
     }
 
     return (
         <TableRow>
-            <TableCell className="font-medium">{job.title}</TableCell>
-            <TableCell>{company.name}</TableCell>
-            <TableCell>{application.createdAt.toDate().toLocaleDateString()}</TableCell>
+            <TableCell className="font-medium">{jobTitle}</TableCell>
+            <TableCell>{companyName}</TableCell>
+            <TableCell>{application.createdAt?.toDate().toLocaleDateString() || new Date().toLocaleDateString()}</TableCell>
             <TableCell className="text-right">
                 <Badge variant={statusVariant[application.status as keyof typeof statusVariant]} className="capitalize">
                     {application.status}
@@ -61,7 +65,7 @@ const ApplicationRow = ({ application }: { application: Application }) => {
 };
 
 export default function ApplicationsPage() {
-    const { user } = useUser(); // Correctly use useUser hook
+    const { user } = useUser();
     const firestore = useFirestore();
 
     const applicationsQuery = useMemoFirebase(() => {

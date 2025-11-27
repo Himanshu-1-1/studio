@@ -110,8 +110,10 @@ export interface Application {
   id: string;
   candidateId: string;
   jobId: string;
+  jobTitle?: string; // Denormalized for mock data
   recruiterId: string;
   companyId: string;
+  companyName?: string; // Denormalized for mock data
   answers: {
     question: string;
     answer: string;
