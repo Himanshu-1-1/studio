@@ -2,7 +2,7 @@
 
 import React from 'react';
 import type { Job } from '@/lib/types';
-import { motion, useMotionValue, useTransform, PanInfo } from 'framer-motion';
+import { motion, useMotionValue, useTransform, PanInfo, AnimationControls } from 'framer-motion';
 import { JobCard } from './JobCard';
 import { Check, X } from 'lucide-react';
 
@@ -10,12 +10,13 @@ interface TinderStyleJobCardProps {
   job: Job;
   isTop: boolean;
   onSwipe: (job: Job, direction: 'left' | 'right') => void;
+  animationControls: AnimationControls;
 }
 
 const SWIPE_DISTANCE_THRESHOLD = 80; // Smaller distance for mobile
 const SWIPE_VELOCITY_THRESHOLD = 0.4; // Moderate flick speed
 
-export function TinderStyleJobCard({ job, isTop, onSwipe }: TinderStyleJobCardProps) {
+export function TinderStyleJobCard({ job, isTop, onSwipe, animationControls }: TinderStyleJobCardProps) {
   const x = useMotionValue(0);
 
   // Card rotation based on drag position
@@ -30,15 +31,22 @@ export function TinderStyleJobCard({ job, isTop, onSwipe }: TinderStyleJobCardPr
     const velocity = info.velocity.x;
 
     if (distance > SWIPE_DISTANCE_THRESHOLD || velocity > SWIPE_VELOCITY_THRESHOLD) {
-      onSwipe(job, 'right');
+      animationControls.start({ x: 500, opacity: 0, rotate: 20, transition: { duration: 0.3 } }).then(() => {
+        onSwipe(job, 'right');
+      });
     } else if (distance < -SWIPE_DISTANCE_THRESHOLD || velocity < -SWIPE_VELOCITY_THRESHOLD) {
-      onSwipe(job, 'left');
+      animationControls.start({ x: -500, opacity: 0, rotate: -20, transition: { duration: 0.3 } }).then(() => {
+        onSwipe(job, 'left');
+      });
+    } else {
+        animationControls.start({ x: 0, rotate: 0, scale: 1, transition: { type: "spring", stiffness: 300, damping: 25 } })
     }
   };
 
   return (
     <motion.div
       className="absolute w-full h-full"
+      animate={animationControls}
       style={{
         zIndex: isTop ? 10 : 1,
         x: isTop ? x : 0,
@@ -51,18 +59,7 @@ export function TinderStyleJobCard({ job, isTop, onSwipe }: TinderStyleJobCardPr
       dragElastic={0.5}
       onDragEnd={handleDragEnd}
       initial={isTop ? { scale: 1, y: 0 } : { scale: 0.96, y: 10 }}
-      animate={{ 
-        scale: isTop ? 1 : 0.96, 
-        y: isTop ? 0 : 10,
-        transition: { type: 'spring', stiffness: 300, damping: 30 }
-      }}
       whileDrag={isTop ? { scale: 1.02, cursor: 'grabbing' } : {}}
-      exit={{
-        x: x.get() > 0 ? 500 : -500,
-        opacity: 0,
-        rotate: x.get() > 0 ? 20 : -20,
-        transition: { duration: 0.3 },
-      }}
     >
       {/* Visual Feedback Overlays */}
       {isTop && (

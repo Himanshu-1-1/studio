@@ -5,7 +5,7 @@ import { TinderStyleJobCard } from './TinderStyleJobCard';
 import type { Job, Application } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { X, Heart, Undo } from 'lucide-react';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, useAnimationControls } from 'framer-motion';
 import { HeartBalloonOverlay } from './HeartBalloonOverlay';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, serverTimestamp, query, where, addDoc } from 'firebase/firestore';
@@ -25,6 +25,8 @@ export function SwipeFeed() {
   const [isLoading, setIsLoading] = useState(true);
   const [history, setHistory] = useState<{ job: Job; direction: SwipeDirection }[]>([]);
   const [showHearts, setShowHearts] = useState(false);
+  const controls = useAnimationControls();
+
 
   const jobsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -54,7 +56,6 @@ export function SwipeFeed() {
     const appliedJobIds = new Set(appliedApplications?.map(app => app.jobId) || []);
     let availableJobs = (fetchedJobs || []).filter(job => !appliedJobIds.has(job.id));
     
-    // Fallback to mock jobs if no live jobs are available
     if (availableJobs.length === 0) {
       const availableMockJobs = mockJobs.filter(job => !appliedJobIds.has(job.id));
       setJobs(availableMockJobs.reverse());
@@ -83,13 +84,13 @@ export function SwipeFeed() {
         const applicationData = {
           candidateId: user.uid,
           jobId: job.id,
-          jobTitle: job.title, // Keep denormalized data for mock scenarios
+          jobTitle: job.title, 
           companyId: job.companyId,
-          companyName: job.companyName, // Keep denormalized data
+          companyName: job.companyName,
           recruiterId: job.postedBy,
           answers: [],
-          resumeUrl: '', // This would be populated in a real scenario
-          matchScore: Math.floor(Math.random() * 30) + 70, // Example score
+          resumeUrl: '', 
+          matchScore: Math.floor(Math.random() * 30) + 70, 
           status: 'pending',
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
@@ -104,6 +105,18 @@ export function SwipeFeed() {
         });
     }
   }, [user, firestore, toast]);
+
+  const triggerSwipe = (direction: 'left' | 'right') => {
+    if (!currentJob) return;
+
+    const swipeAnimation = direction === 'right' 
+        ? { x: 500, opacity: 0, rotate: 20, transition: { duration: 0.3 } }
+        : { x: -500, opacity: 0, rotate: -20, transition: { duration: 0.3 } };
+    
+    controls.start(swipeAnimation).then(() => {
+        handleSwipe(currentJob, direction);
+    });
+  }
 
   const handleUndo = () => {
     if (history.length > 0) {
@@ -141,6 +154,7 @@ export function SwipeFeed() {
                   job={job}
                   isTop={isTop}
                   onSwipe={handleSwipe}
+                  animationControls={controls}
                 />
               );
             })
@@ -168,7 +182,7 @@ export function SwipeFeed() {
           variant="outline"
           size="icon"
           className="w-20 h-20 rounded-full bg-white shadow-lg hover:bg-red-100 active:scale-95"
-          onClick={() => handleSwipe(currentJob, 'left')}
+          onClick={() => triggerSwipe('left')}
           disabled={activeJobs.length === 0}
           aria-label="Skip job"
         >
@@ -178,7 +192,7 @@ export function SwipeFeed() {
           variant="outline"
           size="icon"
           className="w-20 h-20 rounded-full bg-white shadow-lg hover:bg-green-100 active:scale-95"
-          onClick={() => handleSwipe(currentJob, 'right')}
+          onClick={() => triggerSwipe('right')}
           disabled={activeJobs.length === 0}
           aria-label="I'm interested"
         >
