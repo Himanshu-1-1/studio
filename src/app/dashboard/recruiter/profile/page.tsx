@@ -87,7 +87,7 @@ export default function RecruiterProfilePage() {
                 description: "Your recruiter account has been permanently deleted.",
             });
 
-            router.push('/');
+            router.push('/login');
 
         } catch (error: any) {
             console.error("Error deleting account:", error);

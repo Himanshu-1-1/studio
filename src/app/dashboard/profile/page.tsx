@@ -67,7 +67,7 @@ export default function ProfilePage() {
                 description: "Your account has been permanently deleted.",
             });
 
-            router.push('/');
+            router.push('/login');
 
         } catch (error: any) {
             console.error("Error deleting account:", error);
