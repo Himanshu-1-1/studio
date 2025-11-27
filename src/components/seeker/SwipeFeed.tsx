@@ -8,7 +8,7 @@ import { X, Heart, Undo } from 'lucide-react';
 import { AnimatePresence, motion, PanInfo } from 'framer-motion';
 import { HeartBalloonOverlay } from './HeartBalloonOverlay';
 import { useUser, useFirestore, addDocumentNonBlocking, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
+import { collection, serverTimestamp, query, where } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '../ui/skeleton';
 
