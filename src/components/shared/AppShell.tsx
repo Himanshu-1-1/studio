@@ -19,6 +19,7 @@ import {
   Home,
   LogOut,
   MessageSquare,
+  PlusCircle,
   Search,
   Settings,
   User,
@@ -45,7 +46,8 @@ const seekerNav = [
 ];
 
 const recruiterNav = [
-    { href: '/dashboard/recruiter', icon: Briefcase, label: 'Jobs', tooltip: 'My Jobs' },
+    { href: '/dashboard/recruiter', icon: Briefcase, label: 'My Jobs', tooltip: 'My Jobs' },
+    { href: '/dashboard/recruiter/jobs/new', icon: PlusCircle, label: 'Post a Job', tooltip: 'Post a New Job' },
     { href: '/dashboard/recruiter/applicants', icon: Users, label: 'Applicants', tooltip: 'All Applicants' },
     { href: '/dashboard/recruiter/messages', icon: MessageSquare, label: 'Messages', tooltip: 'Messages' },
     { href: '/dashboard/recruiter/profile', icon: User, label: 'Profile', tooltip: 'My Profile' },
