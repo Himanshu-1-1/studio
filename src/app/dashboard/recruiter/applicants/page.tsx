@@ -2,7 +2,7 @@
 
 import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useAuth, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { useUser, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, where, Query } from 'firebase/firestore';
 import type { Application } from '@/lib/types';
 import {
@@ -27,7 +27,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
 function ApplicantsContent() {
-  const { user } = useAuth();
+  const { user } = useUser();
   const firestore = useFirestore();
   const searchParams = useSearchParams();
   const jobId = searchParams.get('jobId');
@@ -35,7 +35,7 @@ function ApplicantsContent() {
   const applicationsQuery = useMemoFirebase(() => {
     if (!user) return null;
     
-    let q: Query<Application> = query(collection(firestore, 'applications'), where('recruiterId', '==', user.uid));
+    let q: Query = query(collection(firestore, 'applications'), where('recruiterId', '==', user.uid));
     
     if (jobId) {
       q = query(q, where('jobId', '==', jobId));
