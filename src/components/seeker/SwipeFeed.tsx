@@ -21,12 +21,13 @@ export function SwipeFeed() {
   const firestore = useFirestore();
   const { toast } = useToast();
 
+  // The primary state for the card stack.
   const [stack, setStack] = useState<Job[]>([]);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showHearts, setShowHearts] = useState(false);
   const controls = useAnimationControls();
-  
+
   const jobsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(collection(firestore, 'jobs'), where('isActive', '==', true));
@@ -40,29 +41,24 @@ export function SwipeFeed() {
   }, [firestore, user]);
 
   const { data: appliedApplications, isLoading: isLoadingApplied } = useCollection<Application>(appliedJobsQuery);
-
+  
+  // This effect runs once to initialize the stack.
   useEffect(() => {
-    if (isLoadingJobs || isLoadingApplied) {
+    if (isLoadingJobs || isLoadingApplied || !user) {
+      if (!isLoadingJobs && !isLoadingApplied) {
+        setIsLoading(false);
+      }
       return;
     }
-  
-    if (!user) {
-        setIsLoading(false);
-        setStack([]);
-        return;
-    }
-  
+
     const appliedJobIds = new Set(appliedApplications?.map(app => app.jobId) || []);
-    let availableJobs = (fetchedJobs || []).filter(job => !appliedJobIds.has(job.id));
     
-    // If no jobs are fetched from Firestore OR the fetched jobs list is empty, use mock jobs
-    if (availableJobs.length === 0) {
-      const availableMockJobs = mockJobs.filter(job => !appliedJobIds.has(job.id));
-      setStack(availableMockJobs);
-    } else {
-      setStack(availableJobs);
-    }
+    // Use fetched jobs if they exist, otherwise fall back to mock jobs.
+    const sourceJobs = fetchedJobs && fetchedJobs.length > 0 ? fetchedJobs : mockJobs;
+
+    const availableJobs = sourceJobs.filter(job => !appliedJobIds.has(job.id));
     
+    setStack(availableJobs);
     setIsLoading(false);
   
   }, [user, fetchedJobs, appliedApplications, isLoadingJobs, isLoadingApplied]);
@@ -70,6 +66,7 @@ export function SwipeFeed() {
   const currentJob = stack[0];
 
   const handleSwipe = useCallback((job: Job, direction: SwipeDirection) => {
+    // Add to history and remove from stack
     setHistory((prev) => [{ job, direction }, ...prev]);
     setStack((prev) => prev.slice(1));
 
@@ -77,7 +74,7 @@ export function SwipeFeed() {
       setShowHearts(true);
       setTimeout(() => setShowHearts(false), 2000);
 
-      const applicationData = {
+      const applicationData: Omit<Application, 'id'> = {
         candidateId: user.uid,
         jobId: job.id,
         jobTitle: job.title,
@@ -85,12 +82,12 @@ export function SwipeFeed() {
         companyName: job.companyName,
         recruiterId: job.postedBy,
         answers: [],
-        resumeUrl: '',
-        matchScore: Math.floor(Math.random() * 30) + 70,
+        resumeUrl: '', // This would be populated in a real scenario
+        matchScore: Math.floor(Math.random() * 30) + 70, // Example match score
         status: 'pending',
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-      } as Omit<Application, 'id'>;
+      };
 
       const applicationsCollection = collection(firestore, 'applications');
       addDoc(applicationsCollection, applicationData).then(() => {
@@ -98,10 +95,17 @@ export function SwipeFeed() {
           title: "Application Sent!",
           description: `You've applied for the ${job.title} position.`,
         });
+      }).catch(err => {
+        console.error("Failed to send application:", err);
+        toast({
+          variant: 'destructive',
+          title: "Application Failed",
+          description: "Could not send your application. Please try again.",
+        });
       });
     }
   }, [user, firestore, toast]);
-
+  
   const triggerSwipe = (direction: 'left' | 'right') => {
     if (!currentJob) return;
 
@@ -110,6 +114,8 @@ export function SwipeFeed() {
       : { x: -500, opacity: 0, rotate: -20, transition: { duration: 0.3 } };
 
     controls.start(swipeAnimation).then(() => {
+      // The onSwipe callback in TinderStyleJobCard will not be called for programmatic swipes.
+      // So we call handleSwipe manually here.
       handleSwipe(currentJob, direction);
     });
   }
@@ -120,8 +126,8 @@ export function SwipeFeed() {
       setHistory((prev) => prev.slice(1));
       setStack((prev) => [lastAction.job, ...prev]);
 
-      // If the undone action was a 'right' swipe, you might want to handle the created application.
-      // For simplicity here, we are just restoring the card to the stack.
+      // Note: This doesn't undo the application creation in Firestore. 
+      // A more robust implementation would handle that.
     }
   };
   
@@ -153,18 +159,16 @@ export function SwipeFeed() {
                   key={job.id}
                   job={job}
                   isTop={isTop}
-                  onSwipe={handleSwipe}
+                  onSwipe={handleSwipe} // This is for manual drag swipes
                   animationControls={controls}
                 />
               );
-            }).reverse() // Reverse to render the top card last (visually on top)
+            }).reverse() // Render top card last to be visually on top
           ) : (
-            !isLoading && (
-              <div className="text-center p-8 bg-card rounded-2xl shadow-md w-full">
-                  <h3 className="text-xl font-semibold font-headline text-slate-700">That’s all for now!</h3>
-                  <p className="text-muted-foreground mt-2 text-sm">New opportunities will appear as soon as they match your profile.</p>
-              </div>
-            )
+            <div className="text-center p-8 bg-card rounded-2xl shadow-md w-full">
+                <h3 className="text-xl font-semibold font-headline text-slate-700">That’s all for now!</h3>
+                <p className="text-muted-foreground mt-2 text-sm">New opportunities will appear as soon as they match your profile.</p>
+            </div>
           )}
         </AnimatePresence>
       </div>
