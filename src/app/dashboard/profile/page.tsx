@@ -4,15 +4,31 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, Github, Linkedin, Pencil, Link as LinkIcon, Briefcase } from "lucide-react";
+import { FileText, Github, Linkedin, Pencil, Link as LinkIcon, Briefcase, Trash2 } from "lucide-react";
 import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
-import { doc } from "firebase/firestore";
+import { doc, deleteDoc } from "firebase/firestore";
+import { getAuth, deleteUser } from "firebase/auth";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { JobSeekerProfile } from "@/lib/types";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+  } from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
+import { useRouter } from "next/navigation";
 
 export default function ProfilePage() {
     const { user, isUserLoading } = useUser();
     const firestore = useFirestore();
+    const router = useRouter();
+    const { toast } = useToast();
 
     const profileRef = useMemoFirebase(() => {
         if (!user) return null;
@@ -20,6 +36,52 @@ export default function ProfilePage() {
     }, [firestore, user]);
 
     const { data: profile, isLoading: isProfileLoading } = useDoc<JobSeekerProfile>(profileRef);
+
+    const handleDeleteAccount = async () => {
+        if (!user || !firestore) {
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: "Could not delete account. User not found.",
+            });
+            return;
+        }
+
+        try {
+            // Firestore documents
+            const profileDoc = doc(firestore, 'jobSeekerProfiles', user.uid);
+            const userDoc = doc(firestore, 'users', user.uid);
+
+            await deleteDoc(profileDoc);
+            await deleteDoc(userDoc);
+
+            // Firebase Auth user
+            const auth = getAuth();
+            const authUser = auth.currentUser;
+            if (authUser) {
+                await deleteUser(authUser);
+            }
+
+            toast({
+                title: "Account Deleted",
+                description: "Your account has been permanently deleted.",
+            });
+
+            router.push('/');
+
+        } catch (error: any) {
+            console.error("Error deleting account:", error);
+            toast({
+                variant: "destructive",
+                title: "Deletion Failed",
+                description: "An error occurred. You may need to log in again to complete this action.",
+            });
+            // Re-authentication might be required for security-sensitive operations
+            if(error.code === 'auth/requires-recent-login') {
+                router.push('/login');
+            }
+        }
+    };
 
     if (isUserLoading || isProfileLoading) {
         return (
@@ -132,6 +194,40 @@ export default function ProfilePage() {
                              )}
                         </div>
                     </section>
+                </CardContent>
+            </Card>
+
+            <Card className="border-destructive">
+                <CardHeader>
+                    <CardTitle className="text-destructive">Danger Zone</CardTitle>
+                    <CardDescription>
+                        Permanently delete your account and all associated data. This action is irreversible.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="destructive">
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete My Account
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete your account,
+                            your profile, and remove all of your application data from our servers.
+                        </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteAccount} className="bg-destructive hover:bg-destructive/90">
+                            Yes, delete my account
+                        </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                    </AlertDialog>
                 </CardContent>
             </Card>
         </div>
