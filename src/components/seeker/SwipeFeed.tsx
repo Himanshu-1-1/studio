@@ -8,10 +8,11 @@ import { Button } from '@/components/ui/button';
 import { X, Heart, Undo } from 'lucide-react';
 import { AnimatePresence, motion, PanInfo } from 'framer-motion';
 import { HeartBalloonOverlay } from './HeartBalloonOverlay';
-import { useUser, useFirestore, addDocumentNonBlocking, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, serverTimestamp, query, where, addDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '../ui/skeleton';
+import { mockJobs } from '@/lib/data';
 
 const SWIPE_THRESHOLD = 50;
 
@@ -28,7 +29,6 @@ export function SwipeFeed() {
   const [showHearts, setShowHearts] = useState(false);
 
   const jobsQuery = useMemoFirebase(() => {
-    // IMPORTANT: Only run the query if the user is logged in
     if (!firestore || !user) return null;
     return query(collection(firestore, 'jobs'), where('isActive', '==', true));
   }, [firestore, user]);
@@ -44,23 +44,29 @@ export function SwipeFeed() {
 
 
   useEffect(() => {
-    // If there's no user, we are done loading.
     if (!user) {
         setIsLoading(false);
         setJobs([]);
         return;
     }
 
-    if (fetchedJobs && appliedApplications) {
-      const appliedJobIds = new Set(appliedApplications.map(app => app.jobId));
-      const filteredJobs = fetchedJobs.filter(job => !appliedJobIds.has(job.id));
-      setJobs(filteredJobs);
-      setIsLoading(false);
-    } else if (!isLoadingJobs && !isLoadingApplied) {
-      // Handle case where one or both might be null after loading
-      setJobs(fetchedJobs || []);
-      setIsLoading(false);
+    if (isLoadingJobs || isLoadingApplied) {
+        return; 
     }
+
+    let finalJobs: Job[];
+
+    if (fetchedJobs && fetchedJobs.length > 0) {
+        const appliedJobIds = new Set(appliedApplications?.map(app => app.jobId) || []);
+        finalJobs = fetchedJobs.filter(job => !appliedJobIds.has(job.id));
+    } else {
+        // Fallback to mock data if firestore is empty
+        finalJobs = mockJobs;
+    }
+    
+    setJobs(finalJobs);
+    setIsLoading(false);
+
   }, [user, fetchedJobs, appliedApplications, isLoadingJobs, isLoadingApplied]);
 
 
@@ -74,29 +80,37 @@ export function SwipeFeed() {
     setSwipeDirection(direction);
 
     if (direction === 'like' && user && firestore) {
-      setShowHearts(true);
-      setTimeout(() => setShowHearts(false), 2000);
+      // Don't create application if using mock data
+      if (fetchedJobs && fetchedJobs.length > 0) {
+        setShowHearts(true);
+        setTimeout(() => setShowHearts(false), 2000);
 
-      const applicationData = {
-        candidateId: user.uid,
-        jobId: activeJob.id,
-        recruiterId: activeJob.postedBy,
-        companyId: activeJob.companyId,
-        answers: [],
-        resumeUrl: '', // This would be populated from the user's profile
-        matchScore: Math.floor(Math.random() * 30) + 70, // Use the same logic as JobCard for now
-        status: 'pending',
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      } as Omit<Application, 'id'>;
+        const applicationData = {
+          candidateId: user.uid,
+          jobId: activeJob.id,
+          recruiterId: activeJob.postedBy,
+          companyId: activeJob.companyId,
+          answers: [],
+          resumeUrl: '', // This would be populated from the user's profile
+          matchScore: Math.floor(Math.random() * 30) + 70, // Use the same logic as JobCard for now
+          status: 'pending',
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        } as Omit<Application, 'id'>;
 
-      const applicationsCollection = collection(firestore, 'applications');
-      addDoc(applicationsCollection, applicationData).then(() => {
-         toast({
-            title: "Application Sent!",
-            description: `You've applied for the ${activeJob.title} position.`,
+        const applicationsCollection = collection(firestore, 'applications');
+        addDoc(applicationsCollection, applicationData).then(() => {
+          toast({
+              title: "Application Sent!",
+              description: `You've applied for the ${activeJob.title} position.`,
+          });
         });
-      });
+      } else {
+         toast({
+            title: "Liked!",
+            description: `You liked the ${activeJob.title} position. (This is a demo action)`,
+        });
+      }
     }
     
     // This timeout ensures the exit animation completes before the state updates
@@ -107,7 +121,7 @@ export function SwipeFeed() {
         setSwipeDirection(null);
     }, 400);
 
-  }, [activeJob, isSwiping, user, firestore, toast]);
+  }, [activeJob, isSwiping, user, firestore, toast, fetchedJobs]);
 
   const handleUndo = () => {
     if (history.length > 0) {
