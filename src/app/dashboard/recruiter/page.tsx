@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { useAuth, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { useAuth, useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import type { Job, Application } from '@/lib/types';
 import { collection, query, where } from 'firebase/firestore';
 import { PlusCircle, ArrowRight, Briefcase, Users, MessageSquare } from 'lucide-react';
@@ -10,7 +10,7 @@ import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function RecruiterDashboard() {
-  const { user } = useAuth();
+  const { user, isUserLoading: isUserLoading } = useUser();
   const firestore = useFirestore();
 
   const jobsQuery = useMemoFirebase(() => {
@@ -34,11 +34,12 @@ export default function RecruiterDashboard() {
 
   const { data: conversations, isLoading: isLoadingConvos } = useCollection(conversationsQuery);
 
+  const isLoading = isUserLoading || isLoadingJobs || isLoadingApps || isLoadingConvos;
 
   const stats = [
-    { name: 'Active Jobs', value: jobs?.length ?? 0, icon: <Briefcase/>, isLoading: isLoadingJobs, href: '/dashboard/recruiter/jobs/new' },
-    { name: 'Total Applicants', value: applications?.length ?? 0, icon: <Users/>, isLoading: isLoadingApps, href: '/dashboard/recruiter/applicants' },
-    { name: 'New Messages', value: conversations?.length ?? 0, icon: <MessageSquare />, isLoading: isLoadingConvos, href: '/dashboard/recruiter/messages' },
+    { name: 'Active Jobs', value: jobs?.length ?? 0, icon: <Briefcase/>, isLoading: isLoading, href: '/dashboard/recruiter/jobs/new' },
+    { name: 'Total Applicants', value: applications?.length ?? 0, icon: <Users/>, isLoading: isLoading, href: '/dashboard/recruiter/applicants' },
+    { name: 'New Messages', value: conversations?.length ?? 0, icon: <MessageSquare />, isLoading: isLoading, href: '/dashboard/recruiter/messages' },
   ];
 
   const recentJobs = jobs?.slice(0, 3) ?? [];
@@ -85,7 +86,7 @@ export default function RecruiterDashboard() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-             {isLoadingJobs ? (
+             {isLoading ? (
               <>
                 <Skeleton className="h-16 w-full" />
                 <Skeleton className="h-16 w-full" />
