@@ -28,18 +28,31 @@ export function SwipeFeed() {
 
   const jobsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // For now, let's fetch all active jobs. A real-world app would have more complex filtering.
     return query(collection(firestore, 'jobs'), where('isActive', '==', true));
   }, [firestore]);
 
   const { data: fetchedJobs, isLoading: isLoadingJobs } = useCollection<Job>(jobsQuery);
 
+  const appliedJobsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, 'applications'), where('candidateId', '==', user.uid));
+  }, [firestore, user]);
+
+  const { data: appliedApplications, isLoading: isLoadingApplied } = useCollection<Application>(appliedJobsQuery);
+
+
   useEffect(() => {
-    if (fetchedJobs) {
-      setJobs(fetchedJobs);
+    if (fetchedJobs && appliedApplications) {
+      const appliedJobIds = new Set(appliedApplications.map(app => app.jobId));
+      const filteredJobs = fetchedJobs.filter(job => !appliedJobIds.has(job.id));
+      setJobs(filteredJobs);
+      setIsLoading(false);
+    } else if (!isLoadingJobs && !isLoadingApplied) {
+      // Handle case where one or both might be null after loading
+      setJobs(fetchedJobs || []);
       setIsLoading(false);
     }
-  }, [fetchedJobs]);
+  }, [fetchedJobs, appliedApplications, isLoadingJobs, isLoadingApplied]);
 
 
   const activeIndex = jobs.length - 1;
@@ -76,7 +89,8 @@ export function SwipeFeed() {
         description: `You've applied for the ${activeJob.title} position.`,
       });
     }
-
+    
+    // This timeout ensures the exit animation completes before the state updates
     setTimeout(() => {
         setHistory((prev) => [...prev, { job: activeJob, direction }]);
         setJobs((prev) => prev.slice(0, prev.length - 1));
@@ -117,7 +131,7 @@ export function SwipeFeed() {
     }),
   };
   
-  if (isLoading || isLoadingJobs) {
+  if (isLoading) {
       return (
           <div className="flex flex-col items-center justify-center w-full h-full p-4 gap-6">
               <div className="relative w-full max-w-sm h-[500px] flex items-center justify-center">
