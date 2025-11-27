@@ -51,18 +51,15 @@ export function SwipeFeed() {
         return;
     }
 
-    let availableJobs: Job[] = [];
     const appliedJobIds = new Set(appliedApplications?.map(app => app.jobId) || []);
-
-    if (fetchedJobs) {
-      availableJobs = fetchedJobs.filter(job => !appliedJobIds.has(job.id));
-    }
-
+    let availableJobs = (fetchedJobs || []).filter(job => !appliedJobIds.has(job.id));
+    
+    // Fallback to mock jobs if no live jobs are available
     if (availableJobs.length === 0) {
       const availableMockJobs = mockJobs.filter(job => !appliedJobIds.has(job.id));
-      setJobs(availableMockJobs.reverse()); // Reverse to pop from the end
+      setJobs(availableMockJobs.reverse());
     } else {
-      setJobs(availableJobs.reverse()); // Reverse to pop from the end
+      setJobs(availableJobs.reverse());
     }
     
     setCurrentIndex(0);
@@ -71,8 +68,11 @@ export function SwipeFeed() {
   }, [user, fetchedJobs, appliedApplications, isLoadingJobs, isLoadingApplied]);
 
   const activeJobs = useMemo(() => jobs.slice(currentIndex), [jobs, currentIndex]);
+  const currentJob = activeJobs[activeJobs.length - 1];
 
   const handleSwipe = useCallback((job: Job, direction: SwipeDirection) => {
+    if (!job) return; // Prevent swipe if no job is active
+
     setHistory((prev) => [...prev, { job, direction }]);
     setCurrentIndex((prev) => prev + 1);
 
@@ -83,13 +83,13 @@ export function SwipeFeed() {
         const applicationData = {
           candidateId: user.uid,
           jobId: job.id,
-          jobTitle: job.title,
+          jobTitle: job.title, // Keep denormalized data for mock scenarios
           companyId: job.companyId,
-          companyName: job.companyName,
+          companyName: job.companyName, // Keep denormalized data
           recruiterId: job.postedBy,
           answers: [],
-          resumeUrl: '',
-          matchScore: Math.floor(Math.random() * 30) + 70,
+          resumeUrl: '', // This would be populated in a real scenario
+          matchScore: Math.floor(Math.random() * 30) + 70, // Example score
           status: 'pending',
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
@@ -121,7 +121,7 @@ export function SwipeFeed() {
             <div className="flex items-center gap-4">
                 <Skeleton className="w-16 h-16 rounded-full" />
                 <Skeleton className="w-20 h-20 rounded-full" />
-                <Skeleton className="w-20 h-20 rounded-full" />
+                <Skeleton className="w-16 h-16 rounded-full" />
             </div>
         </div>
     );
@@ -130,7 +130,7 @@ export function SwipeFeed() {
   return (
     <div className="flex flex-col items-center justify-center w-full h-full p-4 gap-6">
       {showHearts && <HeartBalloonOverlay />}
-      <div className="relative w-full max-w-sm h-[500px] flex items-center justify-center">
+      <div className="relative w-full max-w-sm h-[500px] flex items-center justify-center overflow-hidden">
         <AnimatePresence>
           {activeJobs.length > 0 ? (
             activeJobs.map((job, index) => {
@@ -157,18 +157,18 @@ export function SwipeFeed() {
         <Button
           variant="outline"
           size="icon"
-          className="w-16 h-16 rounded-full bg-white shadow-lg hover:bg-amber-100"
+          className="w-16 h-16 rounded-full bg-white shadow-lg hover:bg-amber-100 active:scale-95"
           onClick={handleUndo}
           disabled={history.length === 0}
           aria-label="Undo last swipe"
         >
           <Undo className="h-8 w-8 text-amber-500" />
         </Button>
-        {/* These buttons are currently for show. The swipe action will be handled by the card itself */}
         <Button
           variant="outline"
           size="icon"
-          className="w-20 h-20 rounded-full bg-white shadow-lg hover:bg-red-100"
+          className="w-20 h-20 rounded-full bg-white shadow-lg hover:bg-red-100 active:scale-95"
+          onClick={() => handleSwipe(currentJob, 'left')}
           disabled={activeJobs.length === 0}
           aria-label="Skip job"
         >
@@ -177,7 +177,8 @@ export function SwipeFeed() {
         <Button
           variant="outline"
           size="icon"
-          className="w-20 h-20 rounded-full bg-white shadow-lg hover:bg-green-100"
+          className="w-20 h-20 rounded-full bg-white shadow-lg hover:bg-green-100 active:scale-95"
+          onClick={() => handleSwipe(currentJob, 'right')}
           disabled={activeJobs.length === 0}
           aria-label="I'm interested"
         >

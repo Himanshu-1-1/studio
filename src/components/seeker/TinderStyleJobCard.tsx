@@ -12,7 +12,8 @@ interface TinderStyleJobCardProps {
   onSwipe: (job: Job, direction: 'left' | 'right') => void;
 }
 
-const SWIPE_THRESHOLD = 120;
+const SWIPE_DISTANCE_THRESHOLD = 80; // Smaller distance for mobile
+const SWIPE_VELOCITY_THRESHOLD = 0.4; // Moderate flick speed
 
 export function TinderStyleJobCard({ job, isTop, onSwipe }: TinderStyleJobCardProps) {
   const x = useMotionValue(0);
@@ -20,14 +21,17 @@ export function TinderStyleJobCard({ job, isTop, onSwipe }: TinderStyleJobCardPr
   // Card rotation based on drag position
   const rotate = useTransform(x, [-200, 200], [-15, 15]);
 
-  // Card opacity and glow effects
+  // Card opacity and glow effects for visual feedback
   const greenGlow = useTransform(x, [0, 150], [0, 1]);
   const redGlow = useTransform(x, [-150, 0], [1, 0]);
 
   const handleDragEnd = (e: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-    if (info.offset.x > SWIPE_THRESHOLD) {
+    const distance = info.offset.x;
+    const velocity = info.velocity.x;
+
+    if (distance > SWIPE_DISTANCE_THRESHOLD || velocity > SWIPE_VELOCITY_THRESHOLD) {
       onSwipe(job, 'right');
-    } else if (info.offset.x < -SWIPE_THRESHOLD) {
+    } else if (distance < -SWIPE_DISTANCE_THRESHOLD || velocity < -SWIPE_VELOCITY_THRESHOLD) {
       onSwipe(job, 'left');
     }
   };
@@ -39,6 +43,8 @@ export function TinderStyleJobCard({ job, isTop, onSwipe }: TinderStyleJobCardPr
         zIndex: isTop ? 10 : 1,
         x: isTop ? x : 0,
         rotate: isTop ? rotate : 0,
+        // Prevents vertical scroll while swiping horizontally on touch devices
+        touchAction: 'pan-y',
       }}
       drag={isTop ? 'x' : false}
       dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
@@ -50,7 +56,7 @@ export function TinderStyleJobCard({ job, isTop, onSwipe }: TinderStyleJobCardPr
         y: isTop ? 0 : 10,
         transition: { type: 'spring', stiffness: 300, damping: 30 }
       }}
-      whileDrag={isTop ? { scale: 1.02, cursor: 'grabbing', shadow: '2xl' } : {}}
+      whileDrag={isTop ? { scale: 1.02, cursor: 'grabbing' } : {}}
       exit={{
         x: x.get() > 0 ? 500 : -500,
         opacity: 0,
