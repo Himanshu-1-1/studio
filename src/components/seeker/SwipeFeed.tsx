@@ -21,7 +21,6 @@ export function SwipeFeed() {
   const firestore = useFirestore();
   const { toast } = useToast();
 
-  // The primary state for the card stack.
   const [stack, setStack] = useState<Job[]>([]);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -42,21 +41,19 @@ export function SwipeFeed() {
 
   const { data: appliedApplications, isLoading: isLoadingApplied } = useCollection<Application>(appliedJobsQuery);
   
-  // This effect runs once to initialize the stack.
   useEffect(() => {
     if (isLoadingJobs || isLoadingApplied || !user) {
-      if (!isLoadingJobs && !isLoadingApplied) {
-        setIsLoading(false);
-      }
+      // Still waiting for data to load
       return;
     }
 
     const appliedJobIds = new Set(appliedApplications?.map(app => app.jobId) || []);
+    let availableJobs = fetchedJobs?.filter(job => !appliedJobIds.has(job.id)) || [];
     
-    // Use fetched jobs if they exist, otherwise fall back to mock jobs.
-    const sourceJobs = fetchedJobs && fetchedJobs.length > 0 ? fetchedJobs : mockJobs;
-
-    const availableJobs = sourceJobs.filter(job => !appliedJobIds.has(job.id));
+    // If no jobs are fetched from Firestore, fall back to mock jobs
+    if (availableJobs.length === 0) {
+        availableJobs = mockJobs.filter(job => !appliedJobIds.has(job.id));
+    }
     
     setStack(availableJobs);
     setIsLoading(false);
@@ -159,7 +156,7 @@ export function SwipeFeed() {
                   key={job.id}
                   job={job}
                   isTop={isTop}
-                  onSwipe={handleSwipe} // This is for manual drag swipes
+                  onSwipe={handleSwipe}
                   animationControls={controls}
                 />
               );
